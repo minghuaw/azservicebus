@@ -8,3 +8,5 @@ Cargo.lock.orig
 
 # VSCode
 .vscode/
+
+.env
