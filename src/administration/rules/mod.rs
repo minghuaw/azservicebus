@@ -46,7 +46,7 @@ impl std::fmt::Debug for RuleProperties {
 
 impl RuleProperties {
     /// The name of the default rule.
-    pub const DEFAULT_RULE_NAME: &str = "$Default";
+    pub const DEFAULT_RULE_NAME: &'static str = "$Default";
 }
 
 impl From<RuleDescription> for RuleProperties {

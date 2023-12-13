@@ -42,7 +42,7 @@ uuid = { version = "1", features=["v4"] }
 indexmap = { version = "1.9", features = ["std"] }
 
 # Azure dependencies
-azure_core = "0.17.0"
+azure_core = "0.18"
 
 # AMQP dependencies
 fe2o3-amqp-types = "0.7"
@@ -74,7 +74,7 @@ dotenv = "0.15"
 futures = "0.3"
 tokio = {version = "1.0", features = ["macros", "rt", "rt-multi-thread"]}
 env_logger = "0.10"
-azure_identity = "0.17.0"
+azure_identity = "0.18"
 
 [features]
 default = ["native-tls"]
