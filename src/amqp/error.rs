@@ -37,16 +37,15 @@ pub(crate) enum AmqpConnectionScopeError {
     WebSocket(#[from] fe2o3_amqp_ws::Error),
 
     #[error(transparent)]
-    Elapsed(#[from] Elapsed),
-
-    #[error(transparent)]
     Begin(#[from] BeginError),
 
-    #[error(transparent)]
-    SenderAttach(#[from] SenderAttachError),
+    // #[error(transparent)]
+    // SenderAttach(#[from] SenderAttachError),
 
+    // #[error(transparent)]
+    // ReceiverAttach(#[from] ReceiverAttachError),
     #[error(transparent)]
-    ReceiverAttach(#[from] ReceiverAttachError),
+    ManagementLinkAttach(#[from] AttachError),
 
     #[error("The connection scope is disposed")]
     ScopeDisposed,
@@ -75,13 +74,15 @@ pub(crate) enum AmqpClientError {
     #[error(transparent)]
     Begin(#[from] BeginError),
 
-    /// Error attaching the sender
-    #[error(transparent)]
-    SenderAttach(#[from] SenderAttachError),
+    // /// Error attaching the sender
+    // #[error(transparent)]
+    // SenderAttach(#[from] SenderAttachError),
 
-    /// Error attaching the receiver
+    // /// Error attaching the receiver
+    // #[error(transparent)]
+    // ReceiverAttach(#[from] ReceiverAttachError),
     #[error(transparent)]
-    ReceiverAttach(#[from] ReceiverAttachError),
+    ManagementLinkAttach(#[from] AttachError),
 
     /// Error closing the AMQP client
     #[error(transparent)]
@@ -100,8 +101,7 @@ impl From<AmqpClientError> for azure_core::Error {
             AmqpClientError::WebSocket(error) => error.into_azure_core_error(),
             AmqpClientError::Elapsed(error) => error.into_azure_core_error(),
             AmqpClientError::Begin(error) => error.into_azure_core_error(),
-            AmqpClientError::SenderAttach(error) => error.into_azure_core_error(),
-            AmqpClientError::ReceiverAttach(error) => error.into_azure_core_error(),
+            AmqpClientError::ManagementLinkAttach(error) => error.into_azure_core_error(),
             AmqpClientError::Dispose(error) => error.into(),
             AmqpClientError::ClientDisposed(error) => error.into(),
         }
@@ -113,10 +113,8 @@ impl From<AmqpConnectionScopeError> for AmqpClientError {
         match err {
             AmqpConnectionScopeError::Open(err) => Self::Open(err),
             AmqpConnectionScopeError::WebSocket(err) => Self::WebSocket(err),
-            AmqpConnectionScopeError::Elapsed(err) => Self::Elapsed(err),
             AmqpConnectionScopeError::Begin(err) => Self::Begin(err),
-            AmqpConnectionScopeError::SenderAttach(err) => Self::SenderAttach(err),
-            AmqpConnectionScopeError::ReceiverAttach(err) => Self::ReceiverAttach(err),
+            AmqpConnectionScopeError::ManagementLinkAttach(err) => Self::ManagementLinkAttach(err),
             AmqpConnectionScopeError::ScopeDisposed => Self::ClientDisposed(ClientDisposedError),
         }
     }
@@ -301,6 +299,15 @@ pub(crate) enum RecoverSenderError {
     #[error("The connection scope is disposed")]
     ConnectionScopeDisposed,
 
+    #[error(transparent)]
+    Open(#[from] OpenError),
+
+    #[error(transparent)]
+    WebSocket(#[from] fe2o3_amqp_ws::Error),
+
+    #[error(transparent)]
+    Begin(#[from] BeginError),
+
     /// Error attaching the management link
     #[error(transparent)]
     ManagementLinkAttach(#[from] AttachError),
@@ -326,6 +333,18 @@ impl ServiceBusRetryPolicyError for RecoverSenderError {
 
     fn is_scope_disposed(&self) -> bool {
         matches!(self, RecoverSenderError::ConnectionScopeDisposed)
+    }
+}
+
+impl From<AmqpConnectionScopeError> for RecoverSenderError {
+    fn from(value: AmqpConnectionScopeError) -> Self {
+        match value {
+            AmqpConnectionScopeError::Open(err) => err.into(),
+            AmqpConnectionScopeError::WebSocket(err) => err.into(),
+            AmqpConnectionScopeError::Begin(err) => err.into(),
+            AmqpConnectionScopeError::ManagementLinkAttach(err) => err.into(),
+            AmqpConnectionScopeError::ScopeDisposed => Self::ConnectionScopeDisposed,
+        }
     }
 }
 
@@ -400,6 +419,15 @@ pub(crate) enum RecoverReceiverError {
     #[error("The connection scope is disposed")]
     ConnectionScopeDisposed,
 
+    #[error(transparent)]
+    Open(#[from] OpenError),
+
+    #[error(transparent)]
+    WebSocket(#[from] fe2o3_amqp_ws::Error),
+
+    #[error(transparent)]
+    Begin(#[from] BeginError),
+
     /// Error attaching the management link
     #[error(transparent)]
     ManagementLinkAttach(#[from] AttachError),
@@ -415,6 +443,18 @@ pub(crate) enum RecoverReceiverError {
     /// Error with CBS auth the recovering receiver link
     #[error(transparent)]
     CbsAuth(#[from] CbsAuthError),
+}
+
+impl From<AmqpConnectionScopeError> for RecoverReceiverError {
+    fn from(value: AmqpConnectionScopeError) -> Self {
+        match value {
+            AmqpConnectionScopeError::Open(err) => err.into(),
+            AmqpConnectionScopeError::WebSocket(err) => err.into(),
+            AmqpConnectionScopeError::Begin(err) => err.into(),
+            AmqpConnectionScopeError::ManagementLinkAttach(err) => err.into(),
+            AmqpConnectionScopeError::ScopeDisposed => Self::ConnectionScopeDisposed,
+        }
+    }
 }
 
 impl ServiceBusRetryPolicyError for RecoverReceiverError {

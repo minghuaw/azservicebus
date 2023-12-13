@@ -2,6 +2,8 @@ use azservicebus::{ServiceBusClient, ServiceBusClientOptions};
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
+    let _ = dotenv::from_filename(".env");
+
     // The connection string should look like:
     // "Endpoint=sb://<your-namespace>.servicebus.windows.net/;SharedAccessKeyName=<your-policy>;SharedAccessKey=<your-key>"
     let connection_string = std::env::var("SERVICE_BUS_CONNECTION_STRING")?;
@@ -25,6 +27,8 @@ async fn main() -> Result<(), anyhow::Error> {
         .create_receiver_for_queue(queue_name, Default::default())
         .await?;
     let message = receiver.receive_message().await?;
+
+    println!("Received message: {:?}", message);
 
     // Complete the message
     receiver.complete_message(&message).await?;

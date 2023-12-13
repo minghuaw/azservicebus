@@ -104,6 +104,7 @@ macro_rules! run_operation {
         let mut _failed_attempt_count = 0; // avoid accidental shadowing
         let mut _should_try_recover = false; // avoid accidental shadowing
         let mut _is_scope_disposed = false; // avoid accidental shadowing
+
         if crate::primitives::service_bus_retry_policy::ServiceBusRetryPolicyState::is_server_busy($policy.state())
             && $try_timeout
                 < crate::primitives::service_bus_retry_policy::SERVER_BUSY_BASE_SLEEP_TIME

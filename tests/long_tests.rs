@@ -29,7 +29,7 @@ cfg_not_wasm32! {
         Ok(())
     }
 
-    async fn receive_and_complete_once_per_minute(
+    async fn receive_and_complete_incoming_messages(
         mut receiver: ServiceBusReceiver,
         total: usize,
     ) -> Result<Vec<ServiceBusReceivedMessage>, anyhow::Error> {
@@ -46,7 +46,6 @@ cfg_not_wasm32! {
 
             total_received += 1;
             received.push(message);
-            tokio::time::sleep(std::time::Duration::from_secs(60)).await;
         }
 
         // Remember to dispose the receiver
@@ -88,8 +87,16 @@ cfg_not_wasm32! {
 
         let total = 120;
 
-        let sender_handle = tokio::spawn(send_one_message_per_minute(sender, total));
-        let receiver_handle = tokio::spawn(receive_and_complete_once_per_minute(receiver, total));
+        let sender_handle = tokio::spawn(async move {
+            let result = send_one_message_per_minute(sender, total).await;
+            println!("sender result: {:?}", result);
+            result
+        });
+        let receiver_handle = tokio::spawn(async move {
+            let result = receive_and_complete_incoming_messages(receiver, total).await;
+            println!("receiver result: {:?}", result);
+            result
+        });
 
         // Wait roughly 50% longer than the total time in case of network interruptions
         let duration = std::time::Duration::from_secs(60 * total as u64 * 3 / 2);

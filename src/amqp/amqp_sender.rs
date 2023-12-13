@@ -61,14 +61,7 @@ impl RecoverableTransport for AmqpSender {
         let mut connection_scope = self.connection_scope.lock().await;
         connection_scope
             .recover()
-            .await
-            .map_err(|connection_scope_error| {
-                log::error!(
-                    "Failed to recover connection scope: {:?}",
-                    connection_scope_error
-                );
-                Self::RecoverError::ConnectionScopeDisposed
-            })?;
+            .await?;
 
         let endpoint = format!("{}/{}", self.service_endpoint, self.entity_path);
         let resource = endpoint.clone();

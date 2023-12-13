@@ -9,6 +9,7 @@ use crate::{
 
 type PeekSessionMessageResponseBody = super::peek_message::PeekMessageResponseBody;
 
+#[derive(Debug)]
 pub(crate) struct PeekSessionMessageResponse {
     pub _has_more_messages: bool,
     pub messages: Vec<Vec<u8>>,

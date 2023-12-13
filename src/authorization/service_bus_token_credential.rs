@@ -1,6 +1,6 @@
-use azure_core::auth::{TokenCredential, TokenResponse};
+use azure_core::auth::{AccessToken, TokenCredential};
 
-use crate::constants::DEFAULT_RESOURCE;
+use crate::constants::DEFAULT_SCOPE;
 
 use super::shared_access_credential::SharedAccessCredential;
 
@@ -68,27 +68,25 @@ impl ServiceBusTokenCredential {
 }
 
 impl ServiceBusTokenCredential {
-    /// Gets a `TokenResponse` for the specified resource
-    pub(crate) async fn get_token(&self, resource: &str) -> azure_core::Result<TokenResponse> {
+    /// Gets a `AccessToken` for the specified resource
+    pub(crate) async fn get_token(&self, scopes: &[&str]) -> azure_core::Result<AccessToken> {
         match self {
             ServiceBusTokenCredential::SharedAccessCredential(credential) => {
-                credential.get_token(resource).await
+                credential.get_token(scopes).await
             }
-            ServiceBusTokenCredential::Other(credential) => credential.get_token(resource).await,
+            ServiceBusTokenCredential::Other(credential) => credential.get_token(scopes).await,
         }
     }
 
-    pub(crate) async fn get_token_using_default_resource(
-        &self,
-    ) -> azure_core::Result<TokenResponse> {
-        self.get_token(DEFAULT_RESOURCE).await
+    pub(crate) async fn get_token_using_default_resource(&self) -> azure_core::Result<AccessToken> {
+        self.get_token(&[DEFAULT_SCOPE]).await
     }
 }
 
 cfg_not_wasm32! {
     #[cfg(test)]
     mod tests {
-        use azure_core::auth::AccessToken;
+        use azure_core::auth::Secret;
         use time::macros::datetime;
 
         use crate::authorization::{
@@ -102,18 +100,21 @@ cfg_not_wasm32! {
         async fn get_token_delegates_to_the_source_credential() {
             let token_value = "token";
             let mut mock_credentials = MockTokenCredential::new();
-            let resource = "the resource value";
-            let token_response = azure_core::auth::TokenResponse {
-                token: AccessToken::new(token_value),
+            let scope = "the scope value";
+            let token_response = azure_core::auth::AccessToken {
+                token: Secret::new(token_value),
                 expires_on: datetime!(2015-10-27 00:00:00).assume_utc(),
             };
             mock_credentials
                 .expect_get_token()
                 .times(1)
-                .returning(move |_resource| Ok(token_response.clone()));
+                .returning(move |_resource| {
+                    let token_response_clone = token_response.clone();
+                    Box::pin( async { Ok(token_response_clone) } )
+                });
 
             let credential = ServiceBusTokenCredential::from(mock_credentials);
-            let token_result = credential.get_token(resource).await;
+            let token_result = credential.get_token(&[scope]).await;
             assert_eq!(token_result.unwrap().token.secret(), token_value);
         }
 

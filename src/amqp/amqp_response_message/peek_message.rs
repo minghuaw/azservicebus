@@ -12,6 +12,7 @@ pub(super) type EncodedMessage = Binary;
 pub(super) type EncodedMessages = Vec<OrderedMap<String, EncodedMessage>>;
 pub(super) type PeekMessageResponseBody = OrderedMap<String, EncodedMessages>;
 
+#[derive(Debug)]
 pub(crate) struct PeekMessageResponse {
     pub _has_more_messages: bool,
     pub messages: Vec<Vec<u8>>,

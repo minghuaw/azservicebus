@@ -1,4 +1,4 @@
-use azure_core::auth::TokenResponse;
+use azure_core::auth::AccessToken;
 use std::sync::Arc;
 
 use crate::{
@@ -17,7 +17,7 @@ pub(crate) enum TokenType {
         credential: Arc<ServiceBusTokenCredential>,
 
         /// The JWT-based token that is currently cached for authorization.
-        cached_token: Option<TokenResponse>,
+        cached_token: Option<AccessToken>,
     },
 }
 

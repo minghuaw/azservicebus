@@ -1,6 +1,11 @@
 //! Error types for the service bus primitives.
 
-use fe2o3_amqp::{connection::OpenError, link::SenderAttachError, session::BeginError};
+use fe2o3_amqp::{
+    connection::OpenError,
+    link::{ReceiverAttachError, SenderAttachError},
+    session::BeginError,
+};
+use fe2o3_amqp_management::error::AttachError;
 use timer_kit::error::Elapsed;
 
 use crate::{
@@ -90,7 +95,10 @@ pub(crate) enum Error {
 
     /// Error attaching the receiver
     #[error(transparent)]
-    ReceiverAttach(#[from] fe2o3_amqp::link::ReceiverAttachError),
+    ReceiverAttach(#[from] ReceiverAttachError),
+
+    #[error(transparent)]
+    ManagementLinkAttach(#[from] AttachError),
 
     /// Error disposing the connection
     #[error(transparent)]
@@ -116,6 +124,7 @@ impl From<Error> for azure_core::Error {
             Error::ReceiverAttach(error) => error.into_azure_core_error(),
             Error::Dispose(error) => error.into(),
             Error::ClientDisposed(error) => error.into(),
+            Error::ManagementLinkAttach(error) => error.into_azure_core_error(),
         }
     }
 }
@@ -128,10 +137,9 @@ impl From<AmqpClientError> for Error {
             AmqpClientError::WebSocket(err) => Self::WebSocket(err),
             AmqpClientError::Elapsed(err) => Self::Elapsed(err),
             AmqpClientError::Begin(err) => Self::Begin(err),
-            AmqpClientError::SenderAttach(err) => Self::SenderAttach(err),
             AmqpClientError::Dispose(err) => Self::Dispose(err),
-            AmqpClientError::ReceiverAttach(err) => Self::ReceiverAttach(err),
             AmqpClientError::ClientDisposed(err) => Self::ClientDisposed(err),
+            AmqpClientError::ManagementLinkAttach(err) => Self::ManagementLinkAttach(err),
         }
     }
 }

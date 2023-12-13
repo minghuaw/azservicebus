@@ -1,6 +1,6 @@
 use std::{sync::Mutex, time::Duration};
 
-use azure_core::auth::{AccessToken, TokenResponse};
+use azure_core::auth::{AccessToken, Secret};
 
 use super::{
     azure_named_key_credential::AzureNamedKeyCredential,
@@ -82,7 +82,7 @@ impl SharedAccessCredential {
     /// use in authorization against a Service Bus entity.
     ///
     /// FIXME: this is a temporary workaround until specialization is stablized.
-    pub(crate) async fn get_token(&self, _resource: &str) -> azure_core::Result<TokenResponse> {
+    pub(crate) async fn get_token(&self, _scopes: &[&str]) -> azure_core::Result<AccessToken> {
         let mut signature = self.shared_access_signature.lock().map_err(|error| {
             azure_core::Error::new(azure_core::error::ErrorKind::Other, error.to_string())
         })?;
@@ -101,8 +101,8 @@ impl SharedAccessCredential {
                 _ => {}
             }
 
-            return Ok(TokenResponse {
-                token: AccessToken::new(signature.value().to_string()),
+            return Ok(AccessToken {
+                token: Secret::new(signature.value().to_string()),
                 expires_on: *signature.signature_expiration(),
             });
         }
@@ -126,8 +126,8 @@ impl SharedAccessCredential {
             signature.update_with_new_expiration(Self::SIGNATURE_EXTENSION_DURATION)?;
         }
 
-        Ok(TokenResponse {
-            token: AccessToken::new(signature.value().to_string()),
+        Ok(AccessToken {
+            token: Secret::new(signature.value().to_string()),
             expires_on: *signature.signature_expiration(),
         })
     }
@@ -155,7 +155,7 @@ mod tests {
         )
         .unwrap();
 
-        let token = credential.get_token("").await.unwrap();
+        let token = credential.get_token(&[""]).await.unwrap();
         assert_eq!(token.token.secret(), signature.value());
     }
 
@@ -165,7 +165,7 @@ mod tests {
             SharedAccessSignature::try_from_parts("hub-name", "keyName", "key", None).unwrap();
         let credential = SharedAccessCredential::from_signature(signature.clone());
 
-        let token = credential.get_token("").await.unwrap();
+        let token = credential.get_token(&[""]).await.unwrap();
         assert_eq!(token.token.secret(), signature.value());
     }
 
@@ -178,7 +178,7 @@ mod tests {
 
         let expected_expiration =
             crate::util::time::now_utc() + SharedAccessCredential::SIGNATURE_EXTENSION_DURATION;
-        let token = credential.get_token("").await.unwrap();
+        let token = credential.get_token(&[""]).await.unwrap();
 
         // There will be a small time difference between the two calls to `now_utc()`
         assert!(token.expires_on - expected_expiration < TimeSpan::seconds(1));
@@ -194,7 +194,7 @@ mod tests {
 
         let expected_expiration =
             crate::util::time::now_utc() + SharedAccessCredential::SIGNATURE_EXTENSION_DURATION;
-        let token = credential.get_token("").await.unwrap();
+        let token = credential.get_token(&[""]).await.unwrap();
         assert!(token.expires_on - expected_expiration < TimeSpan::seconds(1));
     }
 
@@ -208,7 +208,7 @@ mod tests {
         let credential = SharedAccessCredential::from_signature(signature);
 
         let expected_expiration = expires_on;
-        let token = credential.get_token("").await.unwrap();
+        let token = credential.get_token(&[""]).await.unwrap();
         assert!(token.expires_on - expected_expiration < TimeSpan::seconds(1));
     }
 
@@ -223,7 +223,7 @@ mod tests {
         let credential = SharedAccessCredential::from_signature(signature);
 
         let expected_expiration = expires_on;
-        let token = credential.get_token("").await.unwrap();
+        let token = credential.get_token(&[""]).await.unwrap();
         assert!(token.expires_on - expected_expiration < TimeSpan::seconds(1));
     }
 

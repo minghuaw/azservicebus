@@ -86,14 +86,13 @@ where
         let connection_endpoint = format_connection_endpoint(host, transport_type, custom_endpoint, &service_endpoint)?;
 
         // Create AmqpConnectionScope
-        let connection_scope = AmqpConnectionScope::new(
+        let fut = AmqpConnectionScope::new(
             &service_endpoint,
             connection_endpoint,
             credential,
             transport_type,
-            retry_timeout,
-        )
-        .await?;
+        );
+        let connection_scope = crate::util::time::timeout(retry_timeout, fut).await??;
 
         Ok(Self {
             service_endpoint: Arc::new(service_endpoint),

@@ -15,14 +15,34 @@ pub use shared_access_credential::SharedAccessCredential;
 cfg_not_wasm32! {
     #[cfg(test)]
     pub(crate) mod tests {
+        use azure_core::auth::AccessToken;
+        use azure_core::error::Result;
+
+        use std::pin::Pin;
+        use std::future::Future;
+
         use mockall::mock;
 
         mock! {
+            #[derive(Debug)]
             pub TokenCredential {}
 
-            #[async_trait::async_trait]
             impl azure_core::auth::TokenCredential for TokenCredential {
-                async fn get_token(&self, resource: &str) -> azure_core::Result<azure_core::auth::TokenResponse>;
+                // Required methods
+                fn get_token<'life0, 'life1, 'life2, 'async_trait>(
+                    &'life0 self,
+                    scopes: &'life1 [&'life2 str]
+                ) -> Pin<Box<dyn Future<Output = Result<AccessToken>> + Send + 'async_trait>>
+                where Self: 'async_trait,
+                        'life0: 'async_trait,
+                        'life1: 'async_trait,
+                        'life2: 'async_trait;
+
+                fn clear_cache<'life0, 'async_trait>(
+                    &'life0 self
+                ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'async_trait>>
+                where Self: 'async_trait,
+                        'life0: 'async_trait;
             }
         }
     }
