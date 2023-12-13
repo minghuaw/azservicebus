@@ -105,8 +105,6 @@ macro_rules! run_operation {
         let mut _should_try_recover = false; // avoid accidental shadowing
         let mut _is_scope_disposed = false; // avoid accidental shadowing
 
-        println!(">>> (1) is scope disposed: {}", _is_scope_disposed);
-
         if crate::primitives::service_bus_retry_policy::ServiceBusRetryPolicyState::is_server_busy($policy.state())
             && $try_timeout
                 < crate::primitives::service_bus_retry_policy::SERVER_BUSY_BASE_SLEEP_TIME
@@ -116,7 +114,6 @@ macro_rules! run_operation {
             // entire Sleep time.
             let _sleep_result = crate::util::time::sleep($try_timeout).await;
             crate::util::time::handle_delay_value(_sleep_result, &mut _is_scope_disposed);
-            println!(">>> (2) is scope disposed: {}", _is_scope_disposed);
         }
 
         let outcome = loop {
@@ -126,7 +123,6 @@ macro_rules! run_operation {
                 )
                 .await;
                 crate::util::time::handle_delay_value(_sleep_result, &mut _is_scope_disposed);
-                println!(">>> (3) is scope disposed: {}", _is_scope_disposed);
             }
 
             // Recover before trying the operation
@@ -139,17 +135,13 @@ macro_rules! run_operation {
                         }
                         Err(recover_error) => {
                             log::error!("Failed to recover {}", &recover_error);
-                            println!(">>> (4) recover error: {:?}", &recover_error);
                             _is_scope_disposed |= crate::primitives::service_bus_retry_policy::ServiceBusRetryPolicyError::is_scope_disposed(&recover_error);
-                            println!(">>> (4) is scope disposed: {}", _is_scope_disposed);
                             _should_try_recover = crate::primitives::service_bus_retry_policy::ServiceBusRetryPolicyError::should_try_recover(&recover_error);
                         }
                     }
                     Err(elapsed) => {
                         let err = <$err_ty>::from(elapsed);
-                        println!(">>> (5) recover error: {:?}", &err);
                         _is_scope_disposed |= crate::primitives::service_bus_retry_policy::ServiceBusRetryPolicyError::is_scope_disposed(&err);
-                        println!(">>> (5) is scope disposed: {}", _is_scope_disposed);
                     }
                 }
             }
@@ -179,14 +171,6 @@ macro_rules! run_operation {
                     _is_scope_disposed |= crate::primitives::service_bus_retry_policy::ServiceBusRetryPolicyError::is_scope_disposed(&error);
                     // check if the error is recoverable
                     _should_try_recover = crate::primitives::service_bus_retry_policy::ServiceBusRetryPolicyError::should_try_recover(&error);
-
-                    println!(">>>");
-                    println!("failed attempt count: {}", _failed_attempt_count);
-                    println!("error: {:?}", &error);
-                    println!("retry delay: {:?}", _retry_delay);
-                    println!("should try recover: {}", _should_try_recover);
-                    println!("is scope disposed: {}", _is_scope_disposed);
-                    println!("<<<");
 
                     match (_retry_delay, _is_scope_disposed) {
                         (Some(retry_delay), false) => {
