@@ -3,9 +3,11 @@ use azure_identity::DefaultAzureCredential;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
+    let _ = dotenv::from_filename(".env");
+
     // The namespace should look like: "<your-namespace>.servicebus.windows.net"
-    let namespace = "<your-namespace>.servicebus.windows.net";
-    let queue_name = "<your-queue-name>";
+    let namespace = std::env::var("SERVICE_BUS_NAMESPACE")?;
+    let queue_name = std::env::var("SERVICE_BUS_QUEUE")?;
 
     let credential = DefaultAzureCredential::default();
     let mut client = ServiceBusClient::new_from_credential(

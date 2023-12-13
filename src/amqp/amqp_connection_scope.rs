@@ -77,8 +77,6 @@ pub(crate) struct AmqpConnectionScope {
     /// CBS client
     pub(crate) cbs_link: AmqpCbsLinkHandle,
 
-    recover_operation_timeout: StdDuration,
-
     // Keep a copy for recovering
     credential: Arc<ServiceBusTokenCredential>,
 
@@ -117,9 +115,6 @@ impl AmqpConnectionScope {
         connection_endpoint: Url, // FIXME: this will be the same as service_endpoint if a custom endpoint is not supplied
         credential: ServiceBusTokenCredential,
         transport_type: ServiceBusTransportType,
-        // use_single_session: bool,
-        operation_timeout: StdDuration,
-        // metrics: Option<ServiceBusTransportMetrics>, // TODO: implement metrics
     ) -> Result<Self, AmqpConnectionScopeError> {
         // `Guid` from dotnet:
         // This is a convenient static method that you can call to get a new Guid. The method
@@ -129,21 +124,15 @@ impl AmqpConnectionScope {
         let id = format!("{}-{}", service_endpoint, &uuid.to_string()[0..8]);
         let credential = Arc::new(credential);
 
-        let fut = Self::open_connection(&connection_endpoint, &transport_type, &id);
-        let connection_handle = crate::util::time::timeout(operation_timeout, fut).await??;
+        let connection_handle = Self::open_connection(&connection_endpoint, &transport_type, &id).await?;
         let mut connection = AmqpConnection::new(connection_handle);
 
         // TODO: should timeout account for time used previously?
-        let fut = Self::begin_session(&mut connection.handle);
-        let session_handle = crate::util::time::timeout(operation_timeout, fut).await??;
+        let session_handle = Self::begin_session(&mut connection.handle).await?;
         let mut session = AmqpSession::new(session_handle);
 
         #[cfg(feature = "transaction")]
-        let transaction_controller = crate::util::time::timeout(
-            operation_timeout,
-            Self::attach_txn_controller(&mut session.handle, &id),
-        )
-        .await??;
+        let transaction_controller = Self::attach_txn_controller(&mut session.handle, &id).await?;
 
         let cbs_client = attach_cbs_client(&mut session.handle).await?;
         let cbs_token_provider = CbsTokenProvider::new(
@@ -163,7 +152,6 @@ impl AmqpConnectionScope {
             connection,
             session,
             cbs_link,
-            recover_operation_timeout: operation_timeout,
             credential,
             #[cfg(feature = "transaction")]
             transaction_controller,
@@ -542,10 +530,7 @@ cfg_not_wasm32! {
                 }
 
                 // recover
-                let fut =
-                    Self::open_connection(&self.connection_endpoint, &self.transport_type, &self.id);
-                let connection_handle = crate::util::time::timeout(self.recover_operation_timeout, fut).await??;
-                self.connection.handle = connection_handle;
+                self.connection.handle = Self::open_connection(&self.connection_endpoint, &self.transport_type, &self.id).await?;
             }
 
             // Recover session
@@ -554,12 +539,7 @@ cfg_not_wasm32! {
                     log::error!("Error ending session during recovering: {:?}", err);
                 }
 
-                let session_handle = crate::util::time::timeout(
-                    self.recover_operation_timeout,
-                    Session::begin(&mut self.connection.handle),
-                )
-                .await??;
-                self.session.handle = session_handle;
+                self.session.handle = Session::begin(&mut self.connection.handle).await?;
 
                 // Transaction controller link must be re-created
                 // TODO: can txn controller be re-attached?
@@ -697,12 +677,5 @@ cfg_wasm32! {
 async fn attach_cbs_client(
     session: &mut SessionHandle<()>,
 ) -> Result<CbsClient, AmqpConnectionScopeError> {
-    CbsClient::attach(session).await.map_err(|err| match err {
-        fe2o3_amqp_management::error::AttachError::Sender(err) => {
-            AmqpConnectionScopeError::SenderAttach(err)
-        }
-        fe2o3_amqp_management::error::AttachError::Receiver(err) => {
-            AmqpConnectionScopeError::ReceiverAttach(err)
-        }
-    })
+    CbsClient::attach(session).await.map_err(Into::into)
 }
