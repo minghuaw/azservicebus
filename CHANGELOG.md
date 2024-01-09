@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.19.0
+
+- Updated `azure_core` to "0.19.0"
+
 ## 0.18.0
 
 - Updated `azure_core` to "0.18.0"
