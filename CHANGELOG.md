@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 0.19.1
+
+- Removed `async_trait` and use async fn in trait feature stablized in 1.75.0.
+- Set the minimum supported rust version to 1.75.0.
+
 ## 0.19.0
 
 - Updated `azure_core` to "0.19.0"

@@ -181,7 +181,7 @@
 //!
 //! # MSRV (Minimum Supported Rust Version)
 //!
-//! 1.65.0 is the MSRV for this crate because it uses generic associated types.
+//! 1.75.0
 
 #![recursion_limit = "128"]
 #![deny(missing_docs, missing_debug_implementations)]
