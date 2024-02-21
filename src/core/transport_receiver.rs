@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use fe2o3_amqp_types::primitives::{OrderedMap, Timestamp};
 use serde_amqp::Value;
 use std::time::Duration as StdDuration;
@@ -18,8 +17,6 @@ use crate::{
 use crate::ServiceBusReceiver;
 
 /// Trait for session receiver
-#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 pub(crate) trait TransportSessionReceiver: TransportReceiver {
     // /// TODO: dispose/close will consume the ownership, is this still necessary?
     // /// Indicates whether the session link has been closed. This is useful for session receiver scenarios because once the link is closed for a
@@ -59,8 +56,6 @@ pub(crate) trait TransportSessionReceiver: TransportReceiver {
 }
 
 /// Trait for a receiver.
-#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 pub(crate) trait TransportReceiver: Sealed {
     /// Error with request-response operations
     type RequestResponseError: std::error::Error + Send;

@@ -1,6 +1,5 @@
 use std::time::Duration as StdDuration;
 
-use async_trait::async_trait;
 use azure_core::Url;
 
 use crate::{
@@ -24,8 +23,6 @@ use crate::ServiceBusMessage;
 
 /// Provides an abstraction for generalizing an Service Bus entity client so that a dedicated
 /// instance may provide operations for a specific transport.
-#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 pub(crate) trait TransportClient: Sized + Sealed {
     /// Error with creating a client
     type CreateClientError: std::error::Error + Send;

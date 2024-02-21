@@ -1,13 +1,9 @@
-use async_trait::async_trait;
-
 use crate::{
     administration::RuleProperties, amqp::amqp_request_message::add_rule::CreateRuleFilter,
     sealed::Sealed,
 };
 
 /// Trait for rule manager implementations.
-#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 pub(crate) trait TransportRuleManager: Sealed {
     /// Error with creating a rule
     type CreateRuleError: std::error::Error + Send;
@@ -58,5 +54,5 @@ pub(crate) trait TransportRuleManager: Sealed {
     ) -> Result<Vec<RuleProperties>, Self::GetRulesError>;
 
     /// Closes the connection to the transport rule manager instance.
-    async fn close(mut self) -> Result<(), Self::CloseError>;
+    async fn close(self) -> Result<(), Self::CloseError>;
 }

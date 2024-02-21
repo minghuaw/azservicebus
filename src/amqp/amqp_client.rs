@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, sync::Arc, time::Duration};
 
-use async_trait::async_trait;
+
 use azure_core::Url;
 use tokio::sync::Mutex;
 
@@ -56,8 +56,6 @@ pub struct AmqpClient<RP> {
 
 impl<RP> Sealed for AmqpClient<RP> {}
 
-#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 impl<RP> TransportClient for AmqpClient<RP>
 where
     RP: ServiceBusRetryPolicyExt + Send + Sync + 'static,

@@ -3,7 +3,7 @@ use std::{
     time::Duration as StdDuration,
 };
 
-use async_trait::async_trait;
+
 use azure_core::Url;
 use fe2o3_amqp::{
     connection::ConnectionHandle, link::receiver::CreditMode, sasl_profile::SaslProfile,
@@ -449,7 +449,6 @@ fn service_bus_receive_mode_to_amqp(
 
 impl Sealed for AmqpConnectionScope {}
 
-#[async_trait]
 impl TransportConnectionScope for AmqpConnectionScope {
     type Error = DisposeError;
 
@@ -507,7 +506,6 @@ impl TransportConnectionScope for AmqpConnectionScope {
 
 cfg_not_wasm32! {
     /// Only attemp recovery on non-wasm32 platforms
-    #[async_trait]
     impl RecoverableTransport for AmqpConnectionScope {
         type RecoverError = AmqpConnectionScopeError;
 
@@ -577,7 +575,6 @@ cfg_not_wasm32! {
 }
 
 cfg_wasm32! {
-    #[async_trait(?Send)]
     impl RecoverableTransport for AmqpConnectionScope {
         type RecoverError = AmqpConnectionScopeError;
 

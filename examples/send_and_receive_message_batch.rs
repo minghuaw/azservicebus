@@ -1,9 +1,38 @@
 use azservicebus::{
     CreateMessageBatchOptions, ServiceBusClient, ServiceBusClientOptions, ServiceBusMessage,
+    ServiceBusReceiver, ServiceBusSender,
 };
+
+async fn send_batch(mut sender: ServiceBusSender) -> Result<(), anyhow::Error> {
+    let mut batch = sender.create_message_batch(CreateMessageBatchOptions::default())?;
+
+    // Add messages to the batch
+    // The three lines below are all equivalent
+    batch.try_add_message("Message 1")?;
+    batch.try_add_message(ServiceBusMessage::new("Message 2"))?;
+    batch.try_add_message(ServiceBusMessage::from("Message 3"))?;
+
+    // Send the batch
+    sender.send_message_batch(batch).await?;
+
+    sender.dispose().await?;
+    Ok(())
+}
+
+async fn receive_messages(mut receiver: ServiceBusReceiver) -> Result<(), anyhow::Error> {
+    // This will wait indefinitely until at least one message is received
+    let received = receiver.receive_messages(3).await?;
+    for message in received {
+        receiver.complete_message(&message).await?;
+    }
+    receiver.dispose().await?;
+    Ok(())
+}
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
+    dotenv::dotenv().ok();
+
     // The connection string should look like:
     // "Endpoint=sb://<your-namespace>.servicebus.windows.net/;SharedAccessKeyName=<your-policy>;SharedAccessKey=<your-key>"
     let connection_string = std::env::var("SERVICE_BUS_CONNECTION_STRING")?;
@@ -16,32 +45,19 @@ async fn main() -> Result<(), anyhow::Error> {
     .await?;
 
     // Create a sender and then send a batch of messages
-    let mut sender = client
+    let sender = client
         .create_sender(&queue_name, Default::default())
         .await?;
-    let mut batch = sender.create_message_batch(CreateMessageBatchOptions::default())?;
-
-    // Add messages to the batch
-    // The three lines below are all equivalent
-    batch.try_add_message("Message 1")?;
-    batch.try_add_message(ServiceBusMessage::new("Message 2"))?;
-    batch.try_add_message(ServiceBusMessage::from("Message 3"))?;
-
-    // Send the batch
-    sender.send_message_batch(batch).await?;
+    let sender_handle = tokio::spawn(send_batch(sender));
 
     // Create a receiver and then receive the messages
-    let mut receiver = client
+    let receiver = client
         .create_receiver_for_queue(queue_name, Default::default())
         .await?;
-    // This will wait indefinitely until at least one message is received
-    let received = receiver.receive_messages(3).await?;
-    for message in received {
-        receiver.complete_message(&message).await?;
-    }
+    let receiver_handle = tokio::spawn(receive_messages(receiver));
 
-    sender.dispose().await?;
-    receiver.dispose().await?;
+    sender_handle.await??;
+    receiver_handle.await??;
     client.dispose().await?;
     Ok(())
 }

@@ -1,4 +1,4 @@
-use async_trait::async_trait;
+
 use fe2o3_amqp::link::DetachError;
 use std::{sync::Arc, time::Duration as StdDuration};
 use tokio::sync::Mutex;
@@ -41,8 +41,6 @@ pub struct AmqpRuleManager {
     pub(crate) connection_scope: Arc<Mutex<AmqpConnectionScope>>,
 }
 
-#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 impl RecoverableTransport for AmqpRuleManager {
     type RecoverError = OpenRuleManagerError;
 
@@ -109,8 +107,6 @@ impl AmqpRuleManager {
 
 impl Sealed for AmqpRuleManager {}
 
-#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 impl TransportRuleManager for AmqpRuleManager {
     type CreateRuleError = RetryError<CreateRuleError>;
     type DeleteRuleError = RetryError<AmqpRequestResponseError>;
@@ -208,7 +204,7 @@ impl TransportRuleManager for AmqpRuleManager {
     }
 
     /// Closes the connection to the transport rule manager instance.
-    async fn close(mut self) -> Result<(), Self::CloseError> {
+    async fn close(self) -> Result<(), Self::CloseError> {
         self.management_link.close().await
     }
 }

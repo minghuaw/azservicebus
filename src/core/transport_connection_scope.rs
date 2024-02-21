@@ -1,11 +1,8 @@
 use std::time::Duration;
 
-use async_trait::async_trait;
-
 use crate::{primitives::service_bus_transport_type::ServiceBusTransportType, sealed::Sealed};
 
-#[async_trait]
-pub trait TransportConnectionScope: Sealed {
+pub(crate) trait TransportConnectionScope: Sealed {
     type Error: std::error::Error + Send;
 
     fn transport_type(&self) -> ServiceBusTransportType;

@@ -1,4 +1,4 @@
-use async_trait::async_trait;
+
 use fe2o3_amqp::link::DetachError;
 use fe2o3_amqp_management::error::Error as ManagementError;
 use fe2o3_amqp_types::messaging::Outcome;
@@ -52,8 +52,6 @@ pub struct AmqpSender {
     pub(crate) connection_scope: Arc<Mutex<AmqpConnectionScope>>,
 }
 
-#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 impl RecoverableTransport for AmqpSender {
     type RecoverError = RecoverSenderError;
 
@@ -157,8 +155,6 @@ impl AmqpSender {
 
 impl Sealed for AmqpSender {}
 
-#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 impl TransportSender for AmqpSender {
     type SendError = RetryError<AmqpSendError>;
     type ScheduleError = RetryError<AmqpRequestResponseError>;

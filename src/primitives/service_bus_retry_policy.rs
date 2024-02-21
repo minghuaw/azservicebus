@@ -2,7 +2,6 @@
 
 use std::time::Duration as StdDuration;
 
-use async_trait::async_trait;
 use fe2o3_amqp::link::SendError;
 use fe2o3_amqp_management::error::Error as ManagementError;
 
@@ -84,7 +83,6 @@ pub trait ServiceBusRetryPolicyState {
 ///
 /// This trait currently is simple a marker trait that acts as the trait bound for the retry policy
 /// generic parameter on the ServiceBusClient.
-#[async_trait]
 pub trait ServiceBusRetryPolicyExt:
     ServiceBusRetryPolicy + From<ServiceBusRetryOptions> + Send + Sync
 {
