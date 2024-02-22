@@ -18,13 +18,13 @@ impl EnumerateRulesResponse {
     pub fn into_get_rules_response(mut self) -> Vec<RuleProperties> {
         let rules = self
             .body
-            .remove(management_constants::properties::RULES)
+            .swap_remove(management_constants::properties::RULES)
             .unwrap_or_else(|| Vec::with_capacity(0));
 
         rules
             .into_iter()
             .filter_map(|mut entry| {
-                entry.remove(management_constants::properties::RULE_DESCRIPTION)
+                entry.swap_remove(management_constants::properties::RULE_DESCRIPTION)
             })
             .map(RuleProperties::from)
             .collect()

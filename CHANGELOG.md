@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 0.19.2
+
+- Updated dependencies
+  - `fe2o3-amqp-types` to "0.7.2"
+  - `fe2o3-amqp` to "0.8.27"
+  - `fe2o3-amqp-management` to "0.2.3"
+  - `serde_amqp` to "0.5.10"
+- Use explicit `OrderedMap::swap_remove` instead of the deprecated `OrderedMap::remove`
+
 ## 0.19.1
 
 - Removed `async_trait` and use async fn in trait feature stablized in 1.75.0.

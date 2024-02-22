@@ -21,11 +21,11 @@ pub(crate) struct PeekMessageResponse {
 pub(crate) fn get_messages_from_body(
     mut body: PeekMessageResponseBody,
 ) -> Option<impl Iterator<Item = Vec<u8>>> {
-    let messages = body.remove(MESSAGES)?;
+    let messages = body.swap_remove(MESSAGES)?;
 
     let messages = messages
         .into_iter()
-        .filter_map(|mut map| map.remove(MESSAGE).map(|arr| arr.into_vec()));
+        .filter_map(|mut map| map.swap_remove(MESSAGE).map(|arr| arr.into_vec()));
 
     Some(messages)
 }

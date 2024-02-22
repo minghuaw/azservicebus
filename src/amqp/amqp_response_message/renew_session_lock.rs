@@ -36,12 +36,12 @@ impl Response for RenewSessionLockResponse {
         };
 
         let mut body = message.body.ok_or(Self::Error::DecodeError(None))?;
-        let expiration =
-            body.remove(EXPIRATION)
-                .ok_or_else(|| fe2o3_amqp_management::error::InvalidType {
-                    expected: EXPIRATION.to_string(),
-                    actual: "None".to_string(),
-                })?;
+        let expiration = body.swap_remove(EXPIRATION).ok_or_else(|| {
+            fe2o3_amqp_management::error::InvalidType {
+                expected: EXPIRATION.to_string(),
+                actual: "None".to_string(),
+            }
+        })?;
 
         Ok(Self {
             _has_more_messages: has_more_messages,

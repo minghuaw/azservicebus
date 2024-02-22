@@ -23,7 +23,7 @@ impl Response for RenewLockResponse {
     ) -> Result<Self, Self::Error> {
         let expirations = message
             .body
-            .and_then(|mut map| map.remove(EXPIRATIONS))
+            .and_then(|mut map| map.swap_remove(EXPIRATIONS))
             .ok_or(ManagementError::DecodeError(None))?;
         Ok(Self { expirations })
     }

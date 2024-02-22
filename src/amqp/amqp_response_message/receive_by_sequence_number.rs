@@ -54,7 +54,7 @@ impl Response for ReceiveBySequenceNumberResponse {
         let messages = message
             .body
             .ok_or(super::ManagementError::DecodeError(None))?
-            .remove(MESSAGES)
+            .swap_remove(MESSAGES)
             .ok_or_else(|| InvalidType {
                 expected: MESSAGES.into(),
                 actual: "None".into(),
@@ -63,8 +63,8 @@ impl Response for ReceiveBySequenceNumberResponse {
         let deferred_messages = messages
             .into_iter()
             .map(|mut map| {
-                let uuid = map.remove(LOCK_TOKEN).map(Uuid::try_from);
-                let message = map.remove(MESSAGE).map(Binary::try_from);
+                let uuid = map.swap_remove(LOCK_TOKEN).map(Uuid::try_from);
+                let message = map.swap_remove(MESSAGE).map(Binary::try_from);
                 match (uuid, message) {
                     (Some(Ok(uuid)), Some(Ok(message))) => Some((uuid, message)),
                     _ => None,

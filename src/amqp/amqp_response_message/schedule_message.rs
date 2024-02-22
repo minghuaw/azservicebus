@@ -30,7 +30,7 @@ impl Response for ScheduleMessageResponse {
         let sequence_numbers = message
             .body
             .ok_or(ManagementError::DecodeError(None))?
-            .remove(SEQUENCE_NUMBERS)
+            .swap_remove(SEQUENCE_NUMBERS)
             .ok_or_else(|| fe2o3_amqp_management::error::InvalidType {
                 expected: SEQUENCE_NUMBERS.to_string(),
                 actual: "None".to_string(),

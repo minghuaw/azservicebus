@@ -22,7 +22,7 @@ impl Response for GetSessionStateResponse {
         let session_state = message
             .body
             .ok_or(Self::Error::DecodeError(None))?
-            .remove(SESSION_STATE)
+            .swap_remove(SESSION_STATE)
             .ok_or_else(|| InvalidType {
                 expected: SESSION_STATE.to_string(),
                 actual: "None".to_string(),
