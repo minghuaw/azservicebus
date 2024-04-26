@@ -12,10 +12,11 @@ use super::shared_access_credential::SharedAccessCredential;
 /// # Example
 ///
 /// ```rust,no_run
-/// use azure_identity::DefaultAzureCredential;
+/// use azure_identity::{DefaultAzureCredential, TokenCredentialOptions};
 /// use azservicebus::authorization::ServiceBusTokenCredential;
 ///
-/// let credential = ServiceBusTokenCredential::from(DefaultAzureCredential::default());
+/// let default_credential = DefaultAzureCredential::create(TokenCredentialOptions::default()).unwrap();
+/// let credential = ServiceBusTokenCredential::from(default_credential);
 /// ```
 pub enum ServiceBusTokenCredential {
     /// Shared Access Signature credential.

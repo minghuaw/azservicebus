@@ -100,7 +100,7 @@ impl TryFrom<ServiceBusReceivedMessage> for ServiceBusMessage {
                             | ENQUEUED_TIME_UTC_NAME
                             | MESSAGE_STATE_NAME
                     ),
-                    OwnedKey::ULong(_) => true,
+                    OwnedKey::Ulong(_) => true,
                 })
                 .collect();
             MessageAnnotations(map)

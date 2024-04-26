@@ -32,7 +32,7 @@ impl ReceiveBySequenceNumberRequest {
         body.insert(SEQUENCE_NUMBERS.into(), sequence_numbers.into());
         body.insert(
             RECEIVER_SETTLE_MODE.into(),
-            Value::UInt(u8::from(receiver_settle_mode) as u32),
+            Value::Uint(u8::from(receiver_settle_mode) as u32),
         );
         if let Some(session_id) = session_id {
             body.insert(SESSION_ID.into(), session_id.into());

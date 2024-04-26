@@ -474,7 +474,7 @@ impl TransportConnectionScope for AmqpConnectionScope {
         // TODO: close active links? Is this necessary?
         self.is_disposed = true;
 
-        let _ = self.cbs_link.stop();
+        self.cbs_link.stop();
         let _cbs_close_result = self.cbs_link.join_handle_mut().await;
 
         #[cfg(not(target_arch = "wasm32"))]
@@ -558,7 +558,7 @@ cfg_not_wasm32! {
                 }
 
                 // recover CBS link only if session was recovered
-                let _ = self.cbs_link.stop();
+                self.cbs_link.stop();
                 let _cbs_close_result = self.cbs_link.join_handle_mut().await;
                 let cbs_client = attach_cbs_client(&mut self.session.handle).await?;
                 let cbs_token_provider = CbsTokenProvider::new(

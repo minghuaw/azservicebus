@@ -92,7 +92,7 @@ impl<B> AmqpMessageExt for Message<B> {
     fn message_id(&self) -> Option<Cow<'_, str>> {
         match self.properties.as_ref()?.message_id.as_ref()? {
             MessageId::String(val) => Some(Cow::Borrowed(val)),
-            MessageId::ULong(val) => Some(Cow::Owned(val.to_string())),
+            MessageId::Ulong(val) => Some(Cow::Owned(val.to_string())),
             MessageId::Uuid(uuid) => Some(Cow::Owned(format!("{:x}", uuid))),
             MessageId::Binary(bytes) => {
                 let binary_ref = BinaryRef::from(bytes);
@@ -145,7 +145,7 @@ impl<B> AmqpMessageExt for Message<B> {
     fn correlation_id(&self) -> Option<Cow<'_, str>> {
         match self.properties.as_ref()?.correlation_id.as_ref()? {
             MessageId::String(val) => Some(Cow::Borrowed(val)),
-            MessageId::ULong(val) => Some(Cow::Owned(val.to_string())),
+            MessageId::Ulong(val) => Some(Cow::Owned(val.to_string())),
             MessageId::Uuid(uuid) => Some(Cow::Owned(format!("{:x}", uuid))),
             MessageId::Binary(bytes) => {
                 let binary_ref = BinaryRef::from(bytes);
