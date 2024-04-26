@@ -1,7 +1,7 @@
 use azure_core::auth::AccessToken;
 use fe2o3_amqp_cbs::{token::CbsToken, AsyncCbsTokenProvider};
 use fe2o3_amqp_types::primitives::Timestamp;
-use std::{future::Future, pin::Pin, sync::Arc};
+use std::{future::Future, sync::Arc};
 use time::Duration as TimeSpan;
 
 use crate::authorization::service_bus_token_credential::ServiceBusTokenCredential;
@@ -45,18 +45,17 @@ fn is_nearing_expiration(token: &AccessToken, token_expiration_buffer: TimeSpan)
 }
 
 impl AsyncCbsTokenProvider for CbsTokenProvider {
-    type Fut<'a> =
-        Pin<Box<dyn Future<Output = Result<CbsToken<'a>, azure_core::error::Error>> + Send + 'a>>;
     type Error = azure_core::error::Error;
 
+    #[allow(clippy::manual_async_fn)]
     fn get_token_async(
         &mut self,
         _container_id: impl AsRef<str>,
         _resource_id: impl AsRef<str>,
         _claims: impl IntoIterator<Item = impl AsRef<str>>,
-    ) -> Self::Fut<'_> {
+    ) -> impl Future<Output = Result<CbsToken<'_>, Self::Error>> + Send {
         // CbsTokenFut { provider: self }
-        Box::pin(async {
+        async move {
             let expiration_buffer = self.token_expiration_buffer;
             let entity_type = self.token_type.entity_type().to_string();
 
@@ -90,7 +89,7 @@ impl AsyncCbsTokenProvider for CbsTokenProvider {
                     Some(Timestamp::from(token.expires_on)),
                 )
             })
-        })
+        }
     }
 }
 

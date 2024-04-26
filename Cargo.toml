@@ -1,6 +1,6 @@
 [package]
 name = "azservicebus"
-version = "0.19.2"
+version = "0.20.0"
 description = "An unofficial AMQP 1.0 rust client for Azure Service Bus"
 readme = "README.md"
 authors = ["Minghua Wu"]
@@ -23,7 +23,7 @@ rust-version = "1.75.0"
 rustdoc-args = ["--cfg", "docsrs"] # for conditional intra-doc links
 
 [dependencies]
-base64 = "0.21.0"
+base64 = "0.22"
 const_format = "0.2"
 digest = "0.10"
 futures-util = "0.3"
@@ -37,18 +37,18 @@ time = { version = "0.3.10", features = ["macros"] }
 url = "2.2"
 urlencoding = "2"
 uuid = { version = "1", features=["v4"] }
-indexmap = { version = "1.9", features = ["std"] }
+indexmap = { version = "2", features = ["std"] }
 
 # Azure dependencies
-azure_core = "0.19"
+azure_core = "0.20"
 
 # AMQP dependencies
-fe2o3-amqp-types = "0.7.2"
-fe2o3-amqp = {version = "0.8.27"} # TODO: let user choose rustls or native-tls?
-fe2o3-amqp-cbs = "0.2"
-fe2o3-amqp-management = "0.2.3"
-fe2o3-amqp-ws = { version = "0.4.0" }
-serde_amqp = {version = "0.5.10", features = ["time"]}
+fe2o3-amqp-types = "0.10"
+fe2o3-amqp = {version = "0.10"}
+fe2o3-amqp-cbs = "0.10"
+fe2o3-amqp-management = "0.10"
+fe2o3-amqp-ws = { version = "0.10" }
+serde_amqp = { version = "0.10", features = ["time"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 timer-kit = { version = "0.1", features = ["tokio"] }
@@ -67,12 +67,12 @@ js-sys = "0.3"
 # wasm32 target is not supported yet
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 anyhow = "1.0"
-mockall = "0.11"
+mockall = "0.12"
 dotenv = "0.15"
 futures = "0.3"
 tokio = {version = "1.0", features = ["macros", "rt", "rt-multi-thread"]}
-env_logger = "0.10"
-azure_identity = "0.19"
+env_logger = "0.11"
+azure_identity = "0.20"
 
 [features]
 default = ["native-tls"]

@@ -206,9 +206,7 @@ impl IntoAzureCoreError for RecvError {
 
         match self {
             RecvError::LinkStateError(_) => azure_core::Error::new(ErrorKind::Io, self),
-            RecvError::MessageDecodeError => {
-                azure_core::Error::new(ErrorKind::DataConversion, self)
-            }
+            RecvError::MessageDecode(_) => azure_core::Error::new(ErrorKind::DataConversion, self),
             _ => azure_core::Error::new(ErrorKind::Other, self),
         }
     }
