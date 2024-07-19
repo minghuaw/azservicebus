@@ -68,9 +68,6 @@ pub(crate) trait TransportClient: Sized + Sealed {
     /// Returnss `true` if the client is closed, otherwise `false`
     fn is_closed(&self) -> bool;
 
-    /// The endpoint for the Service Bus service to which the client is associated.
-    fn service_endpoint(&self) -> &Url;
-
     /// Creates a sender strongly aligned with the active protocol and transport,
     /// responsible for sending [`ServiceBusMessage`] to the entity.
     async fn create_sender(

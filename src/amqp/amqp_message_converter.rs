@@ -53,7 +53,7 @@ pub(crate) struct BatchEnvelope {
 
 #[inline]
 pub(crate) fn batch_service_bus_messages_as_amqp_message(
-    source: impl Iterator<Item = ServiceBusMessage> + ExactSizeIterator,
+    source: impl ExactSizeIterator<Item = ServiceBusMessage>,
     force_batch: bool,
 ) -> Option<BatchEnvelope> {
     let batch_messages = source.map(|m| m.amqp_message);
@@ -64,7 +64,7 @@ pub(crate) fn batch_service_bus_messages_as_amqp_message(
 ///
 /// If `force_batch` is set to true, then a batch will be created even if there is only one message.
 pub(crate) fn build_amqp_batch_from_messages(
-    mut source: impl Iterator<Item = Message<Data>> + ExactSizeIterator,
+    mut source: impl ExactSizeIterator<Item = Message<Data>>,
     force_batch: bool,
 ) -> Option<BatchEnvelope> {
     let total = source.len();

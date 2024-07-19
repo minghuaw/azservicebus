@@ -203,7 +203,7 @@ impl TransportSender for AmqpSender {
     /// in a batch, use [`send_batch`] instead.
     async fn send(
         &mut self,
-        messages: impl Iterator<Item = ServiceBusMessage> + ExactSizeIterator + Send,
+        messages: impl ExactSizeIterator<Item = ServiceBusMessage> + Send,
     ) -> Result<(), Self::SendError> {
         let batch = batch_service_bus_messages_as_amqp_message(messages, false);
         let mut try_timeout = self.retry_policy.calculate_try_timeout(0);

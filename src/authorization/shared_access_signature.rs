@@ -365,12 +365,6 @@ impl SharedAccessSignature {
     }
 }
 
-impl ToString for SharedAccessSignature {
-    fn to_string(&self) -> String {
-        self.value.clone()
-    }
-}
-
 fn convert_to_unix_time(offset_date_time: OffsetDateTime) -> i64 {
     offset_date_time.unix_timestamp()
 }

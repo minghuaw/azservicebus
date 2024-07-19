@@ -3,6 +3,7 @@
 
 use fe2o3_amqp_types::primitives::OrderedMap;
 use serde_amqp::Value;
+use time::OffsetDateTime;
 
 use crate::{
     amqp::amqp_session_receiver::AmqpSessionReceiver,
@@ -86,6 +87,11 @@ impl ServiceBusSessionReceiver {
     /// Gets the session ID of the receiver.
     pub fn session_id(&self) -> &str {
         &self.session_id
+    }
+
+    /// Get the `OffsetDateTime` that the receiver is locked until.
+    pub fn session_locked_until(&self) -> OffsetDateTime {
+        self.inner.session_locked_until()
     }
 
     /// Closes the receiver and performs any cleanup required.

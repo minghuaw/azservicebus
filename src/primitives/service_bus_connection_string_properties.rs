@@ -250,7 +250,6 @@ mod tests {
     const SAS_KEY: &str = "sasKey";
     const SAS: &str = "fullsas";
 
-    ///
     struct Expected {
         endpoint: Option<&'static str>,
         event_hub: Option<&'static str>,
@@ -795,7 +794,7 @@ mod tests {
     fn to_connection_string_returns_ok_with_servicebus_endpoint_scheme() {
         let endpoint = "sb://myhub.servicebus.windows.net";
         let properties = ServiceBusConnectionStringProperties {
-            endpoint: Some(url::Url::parse(&endpoint).unwrap()),
+            endpoint: Some(url::Url::parse(endpoint).unwrap()),
             entity_path: Some("HubName"),
             shared_access_signature: None,
             shared_access_key_name: Some("RootSharedAccessManagementKey"),

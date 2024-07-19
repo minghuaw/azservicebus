@@ -8,13 +8,14 @@ use serde_amqp::Value;
 use crate::amqp::management_constants::properties::{MESSAGE, MESSAGES};
 use crate::primitives::service_bus_peeked_message::ServiceBusPeekedMessage;
 
+use super::{HTTP_STATUS_CODE_NO_CONTENT, HTTP_STATUS_CODE_OK};
+
 pub(super) type EncodedMessage = Binary;
 pub(super) type EncodedMessages = Vec<OrderedMap<String, EncodedMessage>>;
 pub(super) type PeekMessageResponseBody = OrderedMap<String, EncodedMessages>;
 
 #[derive(Debug)]
 pub(crate) struct PeekMessageResponse {
-    pub _has_more_messages: bool,
     pub messages: Vec<Vec<u8>>,
 }
 
@@ -47,7 +48,8 @@ impl PeekMessageResponse {
 }
 
 impl Response for PeekMessageResponse {
-    const STATUS_CODE: u16 = super::HTTP_STATUS_CODE_OK; //
+    // There are more than one Ok status code. So we are ignoring the status code here.
+    const STATUS_CODE: u16 = super::HTTP_STATUS_CODE_OK;
 
     type Body = Option<PeekMessageResponseBody>;
 
@@ -60,17 +62,9 @@ impl Response for PeekMessageResponse {
     }
 
     fn decode_message(
-        mut message: fe2o3_amqp_types::messaging::Message<Self::Body>,
+        message: fe2o3_amqp_types::messaging::Message<Self::Body>,
     ) -> Result<Self, Self::Error> {
-        let status_code = Self::verify_status_code(&mut message)?;
-
-        let has_more_messages = match status_code.0.get() {
-            super::HTTP_STATUS_CODE_OK => true,
-            super::HTTP_STATUS_CODE_NO_CONTENT => false,
-            _ => unreachable!(),
-        };
-
-        let body = message.body.ok_or(Self::Error::DecodeError(None))?;
+        let body = message.body.ok_or(ManagementError::DecodeError(None))?;
         let messages = get_messages_from_body(body)
             .ok_or_else(|| InvalidType {
                 expected: MESSAGES.to_string(),
@@ -78,15 +72,18 @@ impl Response for PeekMessageResponse {
             })?
             .collect();
 
-        Ok(Self {
-            _has_more_messages: has_more_messages,
-            messages,
-        })
+        Ok(Self { messages })
     }
 
     fn from_message(
-        message: fe2o3_amqp_types::messaging::Message<Self::Body>,
+        mut message: fe2o3_amqp_types::messaging::Message<Self::Body>,
     ) -> Result<Self, Self::Error> {
-        Self::decode_message(message)
+        let status_code = Self::verify_status_code(&mut message)?;
+
+        match status_code.0.get() {
+            HTTP_STATUS_CODE_OK => Self::decode_message(message),
+            HTTP_STATUS_CODE_NO_CONTENT => Ok(Self { messages: vec![] }),
+            _ => unreachable!(),
+        }
     }
 }
