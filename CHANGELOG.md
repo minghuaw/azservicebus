@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 0.20.1
+
+1. Fixed the bug that peek message response with a status code of 204 is not handled correctly.
+   [#14](https://github.com/minghuaw/azservicebus/issues/14),
+   [#15](https://github.com/minghuaw/azservicebus/issues/15)
+2. Exposed `ServiceBusSessionReceiver::session_locked_until()`
+3. Reworked internal error propagation of control link attachment
+
 ## 0.20.0
 
 1. Updated dependencies
