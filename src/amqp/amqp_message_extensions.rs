@@ -56,6 +56,7 @@ pub(crate) trait AmqpMessageMutExt {
         key: impl Into<Option<String>>,
     ) -> Result<(), SetPartitionKeyError>;
 
+    #[cfg(feature = "transaction")]
     fn set_via_partition_key(
         &mut self,
         key: impl Into<Option<String>>,
@@ -251,6 +252,7 @@ impl<B> AmqpMessageMutExt for Message<B> {
     }
 
     /// Returns error if key length exceeds [`MAX_PARTITION_KEY_LENGTH`]
+    #[cfg(feature = "transaction")]
     #[inline]
     fn set_via_partition_key(
         &mut self,

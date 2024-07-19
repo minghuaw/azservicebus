@@ -228,7 +228,7 @@ impl AmqpConnectionScope {
         let controller_id = format!("{}-txn-controller", scope_identifier);
         Controller::attach(session, controller_id)
             .await
-            .map_err(Into::into)
+            .map_err(AmqpConnectionScopeError::ControllerAttach)
     }
 
     pub(crate) async fn request_refreshable_authorization_using_cbs(
@@ -452,15 +452,6 @@ impl Sealed for AmqpConnectionScope {}
 impl TransportConnectionScope for AmqpConnectionScope {
     type Error = DisposeError;
 
-    fn transport_type(&self) -> ServiceBusTransportType {
-        // This is a simply enum, cloning should be cheaper than or equivalent to a reference
-        self.transport_type
-    }
-
-    fn is_disposed(&self) -> bool {
-        self.is_disposed
-    }
-
     async fn dispose(&mut self) -> Result<(), Self::Error> {
         cfg_wasm32! {
             use fe2o3_amqp::session::error::TryEndError;
@@ -543,11 +534,7 @@ cfg_not_wasm32! {
                 // TODO: can txn controller be re-attached?
                 #[cfg(feature = "transaction")]
                 {
-                    let txn_controller = crate::util::time::timeout(
-                        self.recover_operation_timeout,
-                        Self::attach_txn_controller(&mut self.session.handle, &self.id),
-                    )
-                    .await??;
+                    let txn_controller = Self::attach_txn_controller(&mut self.session.handle, &self.id).await?;
                     let prev_txn_controller =
                         std::mem::replace(&mut self.transaction_controller, txn_controller);
 

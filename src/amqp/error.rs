@@ -39,16 +39,15 @@ pub(crate) enum AmqpConnectionScopeError {
     #[error(transparent)]
     Begin(#[from] BeginError),
 
-    // #[error(transparent)]
-    // SenderAttach(#[from] SenderAttachError),
-
-    // #[error(transparent)]
-    // ReceiverAttach(#[from] ReceiverAttachError),
     #[error(transparent)]
     ManagementLinkAttach(#[from] AttachError),
 
     #[error("The connection scope is disposed")]
     ScopeDisposed,
+
+    #[cfg(feature = "transaction")]
+    #[error(transparent)]
+    ControllerAttach(SenderAttachError),
 }
 
 /// Error with AMQP client
@@ -74,13 +73,6 @@ pub(crate) enum AmqpClientError {
     #[error(transparent)]
     Begin(#[from] BeginError),
 
-    // /// Error attaching the sender
-    // #[error(transparent)]
-    // SenderAttach(#[from] SenderAttachError),
-
-    // /// Error attaching the receiver
-    // #[error(transparent)]
-    // ReceiverAttach(#[from] ReceiverAttachError),
     #[error(transparent)]
     ManagementLinkAttach(#[from] AttachError),
 
@@ -91,6 +83,11 @@ pub(crate) enum AmqpClientError {
     /// Client is already disposed
     #[error("The client is disposed")]
     ClientDisposed(#[from] ClientDisposedError),
+
+    /// Error with attaching attaching a control link
+    #[cfg(feature = "transaction")]
+    #[error(transparent)]
+    ControllerAttach(SenderAttachError),
 }
 
 impl From<AmqpClientError> for azure_core::Error {
@@ -104,6 +101,8 @@ impl From<AmqpClientError> for azure_core::Error {
             AmqpClientError::ManagementLinkAttach(error) => error.into_azure_core_error(),
             AmqpClientError::Dispose(error) => error.into(),
             AmqpClientError::ClientDisposed(error) => error.into(),
+            #[cfg(feature = "transaction")]
+            AmqpClientError::ControllerAttach(error) => error.into_azure_core_error(),
         }
     }
 }
@@ -116,6 +115,8 @@ impl From<AmqpConnectionScopeError> for AmqpClientError {
             AmqpConnectionScopeError::Begin(err) => Self::Begin(err),
             AmqpConnectionScopeError::ManagementLinkAttach(err) => Self::ManagementLinkAttach(err),
             AmqpConnectionScopeError::ScopeDisposed => Self::ClientDisposed(ClientDisposedError),
+            #[cfg(feature = "transaction")]
+            AmqpConnectionScopeError::ControllerAttach(err) => Self::ControllerAttach(err),
         }
     }
 }
@@ -169,7 +170,7 @@ pub enum SetPartitionKeyError {
     PartitionKeyAndSessionIdAreDifferent,
 }
 
-///
+/// Maximum allowed TTL exceeded
 #[derive(Debug)]
 pub struct MaxAllowedTtlExceededError {}
 
@@ -323,6 +324,11 @@ pub(crate) enum RecoverSenderError {
     /// Error with CBS auth the recovering sender link
     #[error(transparent)]
     CbsAuth(#[from] CbsAuthError),
+
+    /// Error attaching the controller
+    #[cfg(feature = "transaction")]
+    #[error(transparent)]
+    ControllerAttach(SenderAttachError),
 }
 
 impl ServiceBusRetryPolicyError for RecoverSenderError {
@@ -344,6 +350,8 @@ impl From<AmqpConnectionScopeError> for RecoverSenderError {
             AmqpConnectionScopeError::Begin(err) => err.into(),
             AmqpConnectionScopeError::ManagementLinkAttach(err) => err.into(),
             AmqpConnectionScopeError::ScopeDisposed => Self::ConnectionScopeDisposed,
+            #[cfg(feature = "transaction")]
+            AmqpConnectionScopeError::ControllerAttach(err) => Self::ControllerAttach(err),
         }
     }
 }
@@ -443,6 +451,11 @@ pub(crate) enum RecoverReceiverError {
     /// Error with CBS auth the recovering receiver link
     #[error(transparent)]
     CbsAuth(#[from] CbsAuthError),
+
+    /// Error attaching the controller
+    #[cfg(feature = "transaction")]
+    #[error(transparent)]
+    ControllerAttach(SenderAttachError),
 }
 
 impl From<AmqpConnectionScopeError> for RecoverReceiverError {
@@ -453,6 +466,8 @@ impl From<AmqpConnectionScopeError> for RecoverReceiverError {
             AmqpConnectionScopeError::Begin(err) => err.into(),
             AmqpConnectionScopeError::ManagementLinkAttach(err) => err.into(),
             AmqpConnectionScopeError::ScopeDisposed => Self::ConnectionScopeDisposed,
+            #[cfg(feature = "transaction")]
+            AmqpConnectionScopeError::ControllerAttach(err) => Self::ControllerAttach(err),
         }
     }
 }
