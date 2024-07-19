@@ -2,6 +2,10 @@ use azservicebus::{ServiceBusClient, ServiceBusClientOptions};
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
+    env_logger::init();
+
+    dotenv::from_filename(".env").unwrap();
+
     // The connection string should look like:
     // "Endpoint=sb://<your-namespace>.servicebus.windows.net/;SharedAccessKeyName=<your-policy>;SharedAccessKey=<your-key>"
     let connection_string = std::env::var("SERVICE_BUS_CONNECTION_STRING")?;

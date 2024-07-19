@@ -107,6 +107,11 @@ cfg_not_wasm32! {
         println!("{:?}", result);
         all_result = all_result.and(result);
 
+        print!("test peek_empty_queue");
+        let result = peek_empty_queue().await;
+        println!("{:?}", result);
+        all_result = all_result.and(result);
+
         print!("test defer_and_receive_deferred_messages");
         let result = defer_and_receive_deferred_messages().await;
         println!("{:?}", result);
@@ -773,6 +778,25 @@ cfg_not_wasm32! {
         )
         .await?;
 
+        Ok(())
+    }
+
+    async fn peek_empty_queue() -> Result<(), anyhow::Error> {
+        setup_dotenv();
+        let connection_string = std::env::var("SERVICE_BUS_CONNECTION_STRING")?;
+        // This queue should be empty
+        let queue_name = std::env::var("SERVICE_BUS_QUEUE")?;
+
+        let peeked = common::create_client_and_peek_messages(
+            &connection_string,
+            Default::default(),
+            &queue_name,
+            Default::default(),
+            1,
+        )
+        .await?;
+
+        assert!(peeked.is_empty());
         Ok(())
     }
 
