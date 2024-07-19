@@ -8,7 +8,7 @@ use serde_amqp::Value;
 use crate::{
     amqp::management_constants::properties::{LOCK_TOKEN, MESSAGE, MESSAGES},
     primitives::service_bus_received_message::{
-        ReceivedMessageLockToken, ServiceBusReceivedMessage,
+        ReceivedMessageLockToken, ReceivedMessage,
     },
 };
 
@@ -24,12 +24,12 @@ pub(crate) struct ReceiveBySequenceNumberResponse {
 impl ReceiveBySequenceNumberResponse {
     pub fn into_received_messages(
         self,
-    ) -> Result<Vec<ServiceBusReceivedMessage>, serde_amqp::Error> {
+    ) -> Result<Vec<ReceivedMessage>, serde_amqp::Error> {
         let mut received_messages = Vec::with_capacity(self.deferred_messages.len());
         for (lock_token, buf) in self.deferred_messages {
             let raw_amqp_message: Deserializable<Message<Body<Value>>> =
                 serde_amqp::from_slice(&buf)?;
-            let message = ServiceBusReceivedMessage {
+            let message = ReceivedMessage {
                 _is_settled: false,
                 raw_amqp_message: raw_amqp_message.0,
                 lock_token: ReceivedMessageLockToken::LockToken(lock_token),

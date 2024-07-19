@@ -42,16 +42,16 @@
 //!     // Replace "<NAMESPACE-CONNECTION-STRING>" with your connection string,
 //!     // which can be found in the Azure portal and should look like
 //!     // "Endpoint=sb://<NAMESPACE>.servicebus.windows.net/;SharedAccessKeyName=<KEY_NAME>;SharedAccessKey=<KEY_VALUE>"
-//!     let mut client = ServiceBusClient::new_from_connection_string(
+//!     let mut client = Client::new_from_connection_string(
 //!         "<NAMESPACE-CONNECTION-STRING>",
-//!         ServiceBusClientOptions::default()
+//!         ClientOptions::default()
 //!     )
 //!     .await?;
 //!
 //!     // Replace "<QUEUE-NAME>" with the name of your queue
 //!     let mut sender = client.create_sender(
 //!         "<QUEUE-NAME>",
-//!         ServiceBusSenderOptions::default()
+//!         SenderOptions::default()
 //!     )
 //!     .await?;
 //!
@@ -60,7 +60,7 @@
 //!
 //!     for i in 0..3 {
 //!         // Create a message
-//!         let message = ServiceBusMessage::new(format!("Message {}", i));
+//!         let message = Message::new(format!("Message {}", i));
 //!         // Try to add the message to the batch
 //!         if let Err(e) = message_batch.try_add_message(message) {
 //!             // If the batch is full, an error will be returned
@@ -92,16 +92,16 @@
 //!     // Replace "<NAMESPACE-CONNECTION-STRING>" with your connection string,
 //!     // which can be found in the Azure portal and should look like
 //!     // "Endpoint=sb://<NAMESPACE>.servicebus.windows.net/;SharedAccessKeyName=<KEY_NAME>;SharedAccessKey=<KEY_VALUE>"
-//!     let mut client = ServiceBusClient::new_from_connection_string(
+//!     let mut client = Client::new_from_connection_string(
 //!         "<NAMESPACE-CONNECTION-STRING>",
-//!         ServiceBusClientOptions::default()
+//!         ClientOptions::default()
 //!     )
 //!     .await?;
 //!
 //!     // Replace "<QUEUE-NAME>" with the name of your queue
 //!     let mut receiver = client.create_receiver_for_queue(
 //!         "<QUEUE-NAME>",
-//!         ServiceBusReceiverOptions::default()
+//!         ReceiverOptions::default()
 //!     )
 //!     .await?;
 //!
@@ -224,27 +224,27 @@ pub mod prelude {
     //! Re-exports
 
     cfg_either_rustls_or_native_tls! {
-        pub use crate::client::service_bus_client::{ServiceBusClient, ServiceBusClientOptions};
-        pub use crate::rule_manager::service_bus_rule_manager::ServiceBusRuleManager;
-        pub use crate::sender::service_bus_sender::{ServiceBusSender, ServiceBusSenderOptions};
-        pub use crate::receiver::service_bus_receiver::{ServiceBusReceiver, ServiceBusReceiverOptions};
-        pub use crate::receiver::service_bus_session_receiver::{ServiceBusSessionReceiver, ServiceBusSessionReceiverOptions};
+        pub use crate::client::service_bus_client::{Client, ClientOptions};
+        pub use crate::rule_manager::service_bus_rule_manager::{RuleManager};
+        pub use crate::sender::service_bus_sender::{Sender, SenderOptions};
+        pub use crate::receiver::service_bus_receiver::{Receiver, ReceiverOptions};
+        pub use crate::receiver::service_bus_session_receiver::{SessionReceiver, SessionReceiverOptions};
     }
 
     pub use crate::primitives::{
-        service_bus_connection_string_properties::ServiceBusConnectionStringProperties,
-        service_bus_message::ServiceBusMessage, service_bus_message_state::ServiceBusMessageState,
-        service_bus_peeked_message::ServiceBusPeekedMessage,
-        service_bus_received_message::ServiceBusReceivedMessage,
-        service_bus_retry_mode::ServiceBusRetryMode,
-        service_bus_retry_options::ServiceBusRetryOptions,
-        service_bus_retry_policy::ServiceBusRetryPolicy,
-        service_bus_transport_type::ServiceBusTransportType, sub_queue::SubQueue,
+        service_bus_connection_string_properties::ConnectionStringProperties,
+        service_bus_message::Message, service_bus_message_state::MessageState,
+        service_bus_peeked_message::PeekedMessage,
+        service_bus_received_message::ReceivedMessage,
+        service_bus_retry_mode::RetryMode,
+        service_bus_retry_options::RetryOptions,
+        service_bus_retry_policy::RetryPolicy,
+        service_bus_transport_type::TransportType, sub_queue::SubQueue,
     };
-    pub use crate::receiver::service_bus_receive_mode::ServiceBusReceiveMode;
+    pub use crate::receiver::service_bus_receive_mode::ReceiveMode;
     pub use crate::sender::{
         service_bus_message_batch::CreateMessageBatchOptions,
-        service_bus_message_batch::ServiceBusMessageBatch,
+        service_bus_message_batch::MessageBatch,
     };
 }
 

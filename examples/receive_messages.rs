@@ -7,15 +7,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Replace "<NAMESPACE-CONNECTION-STRING>" with your connection string,
     // which can be found in the Azure portal and should look like
     // "Endpoint=sb://<NAMESPACE>.servicebus.windows.net/;SharedAccessKeyName=<KEY_NAME>;SharedAccessKey=<KEY_VALUE>"
-    let mut client = ServiceBusClient::new_from_connection_string(
+    let mut client = Client::new_from_connection_string(
         "Endpoint=sb://azservicebus-testing.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=f+K8k7neAdg2e29A2bh12mwRCw5rdpKBR+ASbCSYfQ8=",
-        ServiceBusClientOptions::default(),
+        ClientOptions::default(),
     )
     .await?;
 
     // Replace "<QUEUE-NAME>" with the name of your queue
     let mut receiver = client
-        .create_receiver_for_queue("q1", ServiceBusReceiverOptions::default())
+        .create_receiver_for_queue("q1", ReceiverOptions::default())
         .await?;
 
     // Receive messages from the queue

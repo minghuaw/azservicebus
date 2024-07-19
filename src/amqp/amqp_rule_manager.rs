@@ -10,7 +10,7 @@ use crate::{
     core::{RecoverableTransport, TransportRuleManager},
     primitives::{error::RetryError, service_bus_retry_policy::run_operation},
     sealed::Sealed,
-    ServiceBusRetryPolicy,
+    RetryPolicy,
 };
 
 use super::{
@@ -35,7 +35,7 @@ pub struct AmqpRuleManager {
     pub(crate) subscription_path: String,
 
     pub(crate) management_link: AmqpManagementLink,
-    pub(crate) retry_policy: Box<dyn ServiceBusRetryPolicy>,
+    pub(crate) retry_policy: Box<dyn RetryPolicy>,
 
     /// This is ONLY used for recovery
     pub(crate) connection_scope: Arc<Mutex<AmqpConnectionScope>>,

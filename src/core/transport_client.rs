@@ -5,10 +5,10 @@ use azure_core::Url;
 use crate::{
     authorization::service_bus_token_credential::ServiceBusTokenCredential,
     primitives::{
-        service_bus_retry_options::ServiceBusRetryOptions,
-        service_bus_transport_type::ServiceBusTransportType,
+        service_bus_retry_options::RetryOptions,
+        service_bus_transport_type::TransportType,
     },
-    receiver::service_bus_receive_mode::ServiceBusReceiveMode,
+    receiver::service_bus_receive_mode::ReceiveMode,
     sealed::Sealed,
 };
 
@@ -19,7 +19,7 @@ use super::{
 
 // Conditional import for docs.rs
 #[cfg(docsrs)]
-use crate::ServiceBusMessage;
+use crate::Message;
 
 /// Provides an abstraction for generalizing an Service Bus entity client so that a dedicated
 /// instance may provide operations for a specific transport.
@@ -55,13 +55,13 @@ pub(crate) trait TransportClient: Sized + Sealed {
     async fn create_transport_client(
         host: &str,
         credential: ServiceBusTokenCredential,
-        transport_type: ServiceBusTransportType,
+        transport_type: TransportType,
         custom_endpoint: Option<Url>,
         retry_timeout: StdDuration,
     ) -> Result<Self, Self::CreateClientError>;
 
     /// Get the transport type
-    fn transport_type(&self) -> ServiceBusTransportType;
+    fn transport_type(&self) -> TransportType;
 
     /// Indicates whether or not this client has been closed.
     ///
@@ -69,12 +69,12 @@ pub(crate) trait TransportClient: Sized + Sealed {
     fn is_closed(&self) -> bool;
 
     /// Creates a sender strongly aligned with the active protocol and transport,
-    /// responsible for sending [`ServiceBusMessage`] to the entity.
+    /// responsible for sending [`Message`] to the entity.
     async fn create_sender(
         &mut self,
         entity_path: String,
         identifier: String,
-        retry_policy: ServiceBusRetryOptions,
+        retry_policy: RetryOptions,
     ) -> Result<Self::Sender, Self::CreateSenderError>;
 
     /// Creates a receiver
@@ -82,8 +82,8 @@ pub(crate) trait TransportClient: Sized + Sealed {
         &mut self,
         entity_path: String,
         identifier: String,
-        retry_options: ServiceBusRetryOptions,
-        receive_mode: ServiceBusReceiveMode,
+        retry_options: RetryOptions,
+        receive_mode: ReceiveMode,
         prefetch_count: u32,
     ) -> Result<Self::Receiver, Self::CreateReceiverError>;
 
@@ -92,8 +92,8 @@ pub(crate) trait TransportClient: Sized + Sealed {
         &mut self,
         entity_path: String,
         identifier: String,
-        retry_options: ServiceBusRetryOptions,
-        receive_mode: ServiceBusReceiveMode,
+        retry_options: RetryOptions,
+        receive_mode: ReceiveMode,
         session_id: Option<String>,
         prefetch_count: u32,
     ) -> Result<Self::SessionReceiver, Self::CreateReceiverError>;
@@ -111,7 +111,7 @@ pub(crate) trait TransportClient: Sized + Sealed {
         &mut self,
         subscription_path: String,
         identifier: String,
-        retry_policy: ServiceBusRetryOptions,
+        retry_policy: RetryOptions,
     ) -> Result<Self::RuleManager, Self::CreateRuleManagerError>;
 
     /// Closes the connection to the transport client instance.

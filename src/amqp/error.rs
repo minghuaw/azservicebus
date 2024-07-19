@@ -21,12 +21,12 @@ use crate::{
         },
     },
     util::IntoAzureCoreError,
-    ServiceBusMessage,
+    Message,
 };
 
 // Conditional import for docs.rs
 #[cfg(docsrs)]
-use crate::{ServiceBusPeekedMessage, ServiceBusReceivedMessage};
+use crate::{PeekedMessage, ReceivedMessage};
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum AmqpConnectionScopeError {
@@ -185,9 +185,9 @@ impl std::fmt::Display for MaxAllowedTtlExceededError {
 
 impl std::error::Error for MaxAllowedTtlExceededError {}
 
-/// The message carried in `ServiceBusReceivedMessage` or `ServiceBusPeekedMessage` is a raw AMQP
-/// message. Please use [`ServiceBusReceivedMessage::raw_amqp_message`] or
-/// [`ServiceBusPeekedMessage::raw_amqp_message`] to access the raw AMQP message body.
+/// The message carried in `ReceivedMessage` or `PeekedMessage` is a raw AMQP
+/// message. Please use [`ReceivedMessage::raw_amqp_message`] or
+/// [`PeekedMessage::raw_amqp_message`] to access the raw AMQP message body.
 #[derive(Debug, Clone)]
 pub struct RawAmqpMessageError {}
 
@@ -754,7 +754,7 @@ impl From<CbsAuthError> for azure_core::Error {
 pub enum TryAddMessageError {
     /// The message is too large to fit in a batch
     #[error("Message is too large to fit in a batch")]
-    BatchFull(ServiceBusMessage),
+    BatchFull(Message),
 
     /// The message cannot be serialized
     #[error("Cannot serialize message")]
@@ -762,7 +762,7 @@ pub enum TryAddMessageError {
         /// The error from the codec
         source: serde_amqp::Error,
         /// The message that could not be serialized
-        message: ServiceBusMessage,
+        message: Message,
     },
 }
 

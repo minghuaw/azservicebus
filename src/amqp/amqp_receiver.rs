@@ -19,12 +19,12 @@ use crate::{
     primitives::{
         disposition_status::DispositionStatus,
         error::RetryError,
-        service_bus_peeked_message::ServiceBusPeekedMessage,
-        service_bus_received_message::{ReceivedMessageLockToken, ServiceBusReceivedMessage},
-        service_bus_retry_policy::{run_operation, ServiceBusRetryPolicy},
+        service_bus_peeked_message::PeekedMessage,
+        service_bus_received_message::{ReceivedMessageLockToken, ReceivedMessage},
+        service_bus_retry_policy::{run_operation, RetryPolicy},
     },
     sealed::Sealed,
-    ServiceBusReceiveMode,
+    ReceiveMode,
 };
 
 use super::{
@@ -49,8 +49,8 @@ use super::{
 async fn receive_messages(
     receiver: &mut Receiver,
     prefetch_count: u32,
-    receive_mode: &ServiceBusReceiveMode,
-    buffer: &mut Vec<ServiceBusReceivedMessage>,
+    receive_mode: &ReceiveMode,
+    buffer: &mut Vec<ReceivedMessage>,
     max_messages: u32,
 ) -> Result<(), AmqpRecvError> {
     // Credit mode is manual, need to set credit
@@ -62,7 +62,7 @@ async fn receive_messages(
         let delivery: Delivery<Body<Value>> = receiver.recv().await?;
 
         let mut is_settled = false;
-        if *receive_mode == ServiceBusReceiveMode::ReceiveAndDelete {
+        if *receive_mode == ReceiveMode::ReceiveAndDelete {
             receiver.accept(&delivery).await.map_err(RecvError::from)?;
             is_settled = true;
         }
@@ -74,7 +74,7 @@ async fn receive_messages(
             delivery_info,
             lock_token,
         };
-        let message = ServiceBusReceivedMessage {
+        let message = ReceivedMessage {
             _is_settled: is_settled,
             raw_amqp_message,
             lock_token,
@@ -122,9 +122,9 @@ pub struct AmqpReceiver {
     pub(crate) identifier_str: String,
 
     pub(crate) prefetch_count: u32,
-    pub(crate) retry_policy: Box<dyn ServiceBusRetryPolicy>,
+    pub(crate) retry_policy: Box<dyn RetryPolicy>,
     pub(crate) receiver: fe2o3_amqp::Receiver,
-    pub(crate) receive_mode: ServiceBusReceiveMode,
+    pub(crate) receive_mode: ReceiveMode,
     pub(crate) _is_processor: bool, // TODO: implement processor
 
     pub(crate) management_link: AmqpManagementLink,
@@ -213,7 +213,7 @@ impl AmqpReceiver {
     async fn receive_messages_with_timeout(
         &mut self,
         prefetch_count: u32,
-        buffer: &mut Vec<ServiceBusReceivedMessage>,
+        buffer: &mut Vec<ReceivedMessage>,
         max_messages: u32,
         max_wait_time: StdDuration,
     ) -> Result<(), AmqpRecvError> {
@@ -406,14 +406,14 @@ impl TransportReceiver for AmqpReceiver {
         self.prefetch_count
     }
 
-    fn receive_mode(&self) -> ServiceBusReceiveMode {
+    fn receive_mode(&self) -> ReceiveMode {
         self.receive_mode
     }
 
     async fn receive_messages(
         &mut self,
         max_messages: u32,
-    ) -> Result<Vec<ServiceBusReceivedMessage>, Self::ReceiveError> {
+    ) -> Result<Vec<ReceivedMessage>, Self::ReceiveError> {
         let prefetch_count = self.prefetch_count;
         let mut try_timeout = self.retry_policy.calculate_try_timeout(0);
 
@@ -440,12 +440,12 @@ impl TransportReceiver for AmqpReceiver {
         Ok(buffer)
     }
 
-    /// Receives a set of [`ServiceBusReceivedMessage`] from the entity using [`ServiceBusReceiveMode`] mode.
+    /// Receives a set of [`ReceivedMessage`] from the entity using [`ReceiveMode`] mode.
     async fn receive_messages_with_max_wait_time(
         &mut self,
         max_messages: u32,
         max_wait_time: Option<StdDuration>,
-    ) -> Result<Vec<ServiceBusReceivedMessage>, Self::ReceiveError> {
+    ) -> Result<Vec<ReceivedMessage>, Self::ReceiveError> {
         let max_wait_time =
             max_wait_time.unwrap_or_else(|| self.retry_policy.options().try_timeout);
         let prefetch_count = self.prefetch_count;
@@ -480,10 +480,10 @@ impl TransportReceiver for AmqpReceiver {
         Ok(())
     }
 
-    /// Completes a [`ServiceBusReceivedMessage`]. This will delete the message from the service.
+    /// Completes a [`ReceivedMessage`]. This will delete the message from the service.
     async fn complete(
         &mut self,
-        message: &ServiceBusReceivedMessage,
+        message: &ReceivedMessage,
         session_id: Option<&str>,
     ) -> Result<(), Self::DispositionError> {
         let policy = &mut self.retry_policy;
@@ -529,7 +529,7 @@ impl TransportReceiver for AmqpReceiver {
     /// Indicates that the receiver wants to defer the processing for the message.
     async fn defer(
         &mut self,
-        message: &ServiceBusReceivedMessage,
+        message: &ReceivedMessage,
         properties_to_modify: Option<OrderedMap<String, Value>>,
         session_id: Option<&str>,
     ) -> Result<(), Self::DispositionError> {
@@ -577,7 +577,7 @@ impl TransportReceiver for AmqpReceiver {
         &mut self,
         sequence_number: Option<i64>,
         message_count: i32,
-    ) -> Result<Vec<ServiceBusPeekedMessage>, Self::RequestResponseError> {
+    ) -> Result<Vec<PeekedMessage>, Self::RequestResponseError> {
         let mut request = PeekMessageRequest::new(
             sequence_number.unwrap_or(self.last_peeked_sequence_number + 1),
             message_count,
@@ -609,7 +609,7 @@ impl TransportReceiver for AmqpReceiver {
         sequence_number: Option<i64>,
         message_count: i32,
         session_id: &str,
-    ) -> Result<Vec<ServiceBusPeekedMessage>, Self::RequestResponseError> {
+    ) -> Result<Vec<PeekedMessage>, Self::RequestResponseError> {
         let mut request = PeekSessionMessageRequest::new(
             sequence_number.unwrap_or(self.last_peeked_sequence_number + 1),
             message_count,
@@ -637,10 +637,10 @@ impl TransportReceiver for AmqpReceiver {
         Ok(peeked_messages)
     }
 
-    /// Abandons a [`ServiceBusReceivedMessage`]. This will make the message available again for processing.
+    /// Abandons a [`ReceivedMessage`]. This will make the message available again for processing.
     async fn abandon(
         &mut self,
-        message: &ServiceBusReceivedMessage,
+        message: &ReceivedMessage,
         properties_to_modify: Option<OrderedMap<String, Value>>,
         session_id: Option<&str>,
     ) -> Result<(), Self::DispositionError> {
@@ -685,7 +685,7 @@ impl TransportReceiver for AmqpReceiver {
     /// Moves a message to the dead-letter subqueue.
     async fn dead_letter(
         &mut self,
-        message: &ServiceBusReceivedMessage,
+        message: &ReceivedMessage,
         dead_letter_reason: Option<String>,
         dead_letter_error_description: Option<String>,
         properties_to_modify: Option<OrderedMap<String, Value>>,
@@ -740,11 +740,11 @@ impl TransportReceiver for AmqpReceiver {
         &mut self,
         sequence_numbers: impl Iterator<Item = i64> + Send,
         session_id: Option<&str>,
-    ) -> Result<Vec<ServiceBusReceivedMessage>, Self::RequestResponseError> {
+    ) -> Result<Vec<ReceivedMessage>, Self::RequestResponseError> {
         let sequence_numbers = sequence_numbers.collect();
         let receiver_settle_mode = match self.receive_mode {
-            ServiceBusReceiveMode::PeekLock => ReceiverSettleMode::Second,
-            ServiceBusReceiveMode::ReceiveAndDelete => ReceiverSettleMode::First,
+            ReceiveMode::PeekLock => ReceiverSettleMode::Second,
+            ReceiveMode::ReceiveAndDelete => ReceiverSettleMode::First,
         };
         let mut request = ReceiveBySequenceNumberRequest::new(
             sequence_numbers,

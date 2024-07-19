@@ -1,4 +1,4 @@
-//! Defines the [`ServiceBusPeekedMessage`] struct.
+//! Defines the [`PeekedMessage`] struct.
 
 use std::borrow::Cow;
 use std::time::Duration as StdDuration;
@@ -23,22 +23,22 @@ use crate::{
     constants::{DEFAULT_OFFSET_DATE_TIME, MAX_OFFSET_DATE_TIME},
 };
 
-use super::service_bus_message_state::ServiceBusMessageState;
+use super::service_bus_message_state::MessageState;
 
 // Conditional import for docs.rs
 #[cfg(docsrs)]
-use crate::ServiceBusReceivedMessage;
+use crate::ReceivedMessage;
 
 /// A peeked message from a Service Bus queue or topic.
 #[derive(Debug)]
-pub struct ServiceBusPeekedMessage {
+pub struct PeekedMessage {
     pub(crate) raw_amqp_message: Message<Body<Value>>,
 }
 
-impl ServiceBusPeekedMessage {
+impl PeekedMessage {
     /// Gets the raw Amqp message data that was transmitted over the wire. This can be used to
     /// enable scenarios that require reading AMQP header, footer, property, or annotation data that
-    /// is not exposed as top level properties in the [`ServiceBusReceivedMessage`].
+    /// is not exposed as top level properties in the [`ReceivedMessage`].
     pub fn raw_amqp_message(&self) -> &Message<Body<Value>> {
         &self.raw_amqp_message
     }
@@ -334,20 +334,20 @@ impl ServiceBusPeekedMessage {
     /// The state of the message can be Active, Deferred, or Scheduled. Deferred messages have
     /// Deferred state, scheduled messages have Scheduled state, all other messages have Active
     /// state.
-    pub fn state(&self) -> ServiceBusMessageState {
+    pub fn state(&self) -> MessageState {
         self.raw_amqp_message
             .message_annotations
             .as_ref()
             .and_then(|m| m.get(&MESSAGE_STATE_NAME as &dyn AnnotationKey))
             .map(|value| match value {
-                Value::Long(val) => ServiceBusMessageState::from(*val),
+                Value::Long(val) => MessageState::from(*val),
                 _ => unreachable!("Expecting a Long"),
             })
             .unwrap_or_default()
     }
 }
 
-impl std::fmt::Display for ServiceBusPeekedMessage {
+impl std::fmt::Display for PeekedMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.message_id() {
             Some(id) => write!(f, "{{MessageId:{}}}", id),

@@ -3,7 +3,7 @@
 /// Specifies the type of protocol and transport that will be used for communicating with Azure
 /// Service Bus.
 #[derive(Debug, Default, Clone, Copy)]
-pub enum ServiceBusTransportType {
+pub enum TransportType {
     /// The connection uses the AMQP protocol over TCP.
     #[cfg_attr(not(target_arch = "wasm32"), default)]
     #[cfg(not(target_arch = "wasm32"))]
@@ -15,7 +15,7 @@ pub enum ServiceBusTransportType {
     AmqpWebSocket,
 }
 
-impl ServiceBusTransportType {
+impl TransportType {
     pub(crate) const AMQP_SCHEME: &'static str = "amqps";
     pub(crate) const WEBSOCKET_SCHEME: &'static str = "wss";
 
@@ -23,8 +23,8 @@ impl ServiceBusTransportType {
     pub fn url_scheme(&self) -> &str {
         match self {
             #[cfg(not(target_arch = "wasm32"))]
-            ServiceBusTransportType::AmqpTcp => Self::AMQP_SCHEME,
-            ServiceBusTransportType::AmqpWebSocket => Self::WEBSOCKET_SCHEME,
+            TransportType::AmqpTcp => Self::AMQP_SCHEME,
+            TransportType::AmqpWebSocket => Self::WEBSOCKET_SCHEME,
         }
     }
 }

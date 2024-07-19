@@ -9,10 +9,10 @@ use time::OffsetDateTime;
 
 use crate::{
     constants::DEFAULT_OFFSET_DATE_TIME, core::{RecoverableTransport, TransportReceiver, TransportSessionReceiver}, primitives::{
-        service_bus_peeked_message::ServiceBusPeekedMessage,
-        service_bus_received_message::ServiceBusReceivedMessage,
+        service_bus_peeked_message::PeekedMessage,
+        service_bus_received_message::ReceivedMessage,
         service_bus_retry_policy::run_operation,
-    }, sealed::Sealed, ServiceBusReceiveMode
+    }, sealed::Sealed, ReceiveMode
 };
 
 use super::{
@@ -132,14 +132,14 @@ impl TransportReceiver for AmqpSessionReceiver {
         self.inner.prefetch_count()
     }
 
-    fn receive_mode(&self) -> ServiceBusReceiveMode {
+    fn receive_mode(&self) -> ReceiveMode {
         self.inner.receive_mode()
     }
 
     async fn receive_messages(
         &mut self,
         max_messages: u32,
-    ) -> Result<Vec<ServiceBusReceivedMessage>, Self::ReceiveError> {
+    ) -> Result<Vec<ReceivedMessage>, Self::ReceiveError> {
         self.inner.receive_messages(max_messages).await
     }
 
@@ -147,7 +147,7 @@ impl TransportReceiver for AmqpSessionReceiver {
         &mut self,
         max_messages: u32,
         max_wait_time: Option<StdDuration>,
-    ) -> Result<Vec<ServiceBusReceivedMessage>, Self::ReceiveError> {
+    ) -> Result<Vec<ReceivedMessage>, Self::ReceiveError> {
         self.inner
             .receive_messages_with_max_wait_time(max_messages, max_wait_time)
             .await
@@ -159,7 +159,7 @@ impl TransportReceiver for AmqpSessionReceiver {
 
     async fn complete(
         &mut self,
-        message: &ServiceBusReceivedMessage,
+        message: &ReceivedMessage,
         session_id: Option<&str>,
     ) -> Result<(), Self::DispositionError> {
         self.inner.complete(message, session_id).await
@@ -167,7 +167,7 @@ impl TransportReceiver for AmqpSessionReceiver {
 
     async fn defer(
         &mut self,
-        message: &ServiceBusReceivedMessage,
+        message: &ReceivedMessage,
         properties_to_modify: Option<OrderedMap<String, Value>>,
         session_id: Option<&str>,
     ) -> Result<(), Self::DispositionError> {
@@ -180,7 +180,7 @@ impl TransportReceiver for AmqpSessionReceiver {
         &mut self,
         sequence_number: Option<i64>,
         message_count: i32,
-    ) -> Result<Vec<ServiceBusPeekedMessage>, Self::RequestResponseError> {
+    ) -> Result<Vec<PeekedMessage>, Self::RequestResponseError> {
         self.inner
             .peek_messages(sequence_number, message_count)
             .await
@@ -191,7 +191,7 @@ impl TransportReceiver for AmqpSessionReceiver {
         sequence_number: Option<i64>,
         message_count: i32,
         session_id: &str,
-    ) -> Result<Vec<ServiceBusPeekedMessage>, Self::RequestResponseError> {
+    ) -> Result<Vec<PeekedMessage>, Self::RequestResponseError> {
         self.inner
             .peek_session_messages(sequence_number, message_count, session_id)
             .await
@@ -199,7 +199,7 @@ impl TransportReceiver for AmqpSessionReceiver {
 
     async fn abandon(
         &mut self,
-        message: &ServiceBusReceivedMessage,
+        message: &ReceivedMessage,
         properties_to_modify: Option<OrderedMap<String, Value>>,
         session_id: Option<&str>,
     ) -> Result<(), Self::DispositionError> {
@@ -210,7 +210,7 @@ impl TransportReceiver for AmqpSessionReceiver {
 
     async fn dead_letter(
         &mut self,
-        message: &ServiceBusReceivedMessage,
+        message: &ReceivedMessage,
         dead_letter_reason: Option<String>,
         dead_letter_error_description: Option<String>,
         properties_to_modify: Option<OrderedMap<String, Value>>,
@@ -231,7 +231,7 @@ impl TransportReceiver for AmqpSessionReceiver {
         &mut self,
         sequence_numbers: impl Iterator<Item = i64> + Send,
         session_id: Option<&str>,
-    ) -> Result<Vec<ServiceBusReceivedMessage>, Self::RequestResponseError> {
+    ) -> Result<Vec<ReceivedMessage>, Self::RequestResponseError> {
         self.inner
             .receive_deferred_messages(sequence_numbers, session_id)
             .await

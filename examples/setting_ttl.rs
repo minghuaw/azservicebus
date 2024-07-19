@@ -7,9 +7,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let connection_string = std::env::var("SERVICE_BUS_CONNECTION_STRING")?;
     let queue_name = std::env::var("SERVICE_BUS_QUEUE")?;
 
-    let mut client = ServiceBusClient::new_from_connection_string(
+    let mut client = Client::new_from_connection_string(
         connection_string,
-        ServiceBusClientOptions::default(),
+        ClientOptions::default(),
     )
     .await?;
 
@@ -18,7 +18,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .create_sender(&queue_name, Default::default())
         .await?;
 
-    let mut message = ServiceBusMessage::new("test message 1");
+    let mut message = Message::new("test message 1");
     message.set_time_to_live(std::time::Duration::from_secs(10 * 60))?;
     sender.send_message(message).await?;
 

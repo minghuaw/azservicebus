@@ -5,7 +5,7 @@ use std::time::Duration as StdDuration;
 use fe2o3_amqp::link::SendError;
 use fe2o3_amqp_management::error::Error as ManagementError;
 
-use super::service_bus_retry_options::ServiceBusRetryOptions;
+use super::service_bus_retry_options::RetryOptions;
 
 pub(crate) static SERVER_BUSY_BASE_SLEEP_TIME: StdDuration = StdDuration::from_secs(10);
 
@@ -39,9 +39,9 @@ pub(crate) fn should_try_recover_from_management_error(
 /// It is recommended that developers without advanced needs not implement custom retry
 /// policies but instead configure the default policy by specifying the desired set of
 /// retry options when creating one of the Service Bus clients.
-pub trait ServiceBusRetryPolicy: std::fmt::Debug + Send {
+pub trait RetryPolicy: std::fmt::Debug + Send {
     /// Gets the retry options for the policy.
-    fn options(&self) -> &ServiceBusRetryOptions;
+    fn options(&self) -> &RetryOptions;
 
     /// Gets the state for the policy.
     fn state(&self) -> &dyn ServiceBusRetryPolicyState;
@@ -82,14 +82,14 @@ pub trait ServiceBusRetryPolicyState {
 /// Extension trait for retry policies.
 ///
 /// This trait currently is simple a marker trait that acts as the trait bound for the retry policy
-/// generic parameter on the ServiceBusClient.
+/// generic parameter on the Client.
 pub trait ServiceBusRetryPolicyExt:
-    ServiceBusRetryPolicy + From<ServiceBusRetryOptions> + Send + Sync
+    RetryPolicy + From<RetryOptions> + Send + Sync
 {
 }
 
 impl<T> ServiceBusRetryPolicyExt for T where
-    T: ServiceBusRetryPolicy + From<ServiceBusRetryOptions> + Send + Sync
+    T: RetryPolicy + From<RetryOptions> + Send + Sync
 {
 }
 

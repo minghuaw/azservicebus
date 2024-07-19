@@ -1,5 +1,5 @@
 use azservicebus::{
-    ServiceBusClient, ServiceBusClientOptions, ServiceBusSenderOptions, ServiceBusTransportType,
+    Client, ClientOptions, SenderOptions, TransportType,
 };
 
 #[tokio::main]
@@ -9,16 +9,16 @@ async fn main() -> Result<(), anyhow::Error> {
     let connection_string = std::env::var("SERVICE_BUS_CONNECTION_STRING")?;
     let queue_name = std::env::var("SERVICE_BUS_QUEUE")?;
 
-    let options = ServiceBusClientOptions {
-        transport_type: ServiceBusTransportType::AmqpWebSocket,
+    let options = ClientOptions {
+        transport_type: TransportType::AmqpWebSocket,
         ..Default::default()
     };
     let mut client =
-        ServiceBusClient::new_from_connection_string(connection_string, options).await?;
+        Client::new_from_connection_string(connection_string, options).await?;
 
     // Create a sender for auth only
     let sender = client
-        .create_sender(queue_name, ServiceBusSenderOptions::default())
+        .create_sender(queue_name, SenderOptions::default())
         .await?;
 
     sender.dispose().await?;

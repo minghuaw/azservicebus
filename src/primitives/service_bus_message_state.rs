@@ -1,12 +1,12 @@
-//! Defines the [`ServiceBusMessageState`] enum.
+//! Defines the [`MessageState`] enum.
 
 // Conditional import for docs.rs
 #[cfg(docsrs)]
-use crate::ServiceBusReceivedMessage;
+use crate::ReceivedMessage;
 
-/// Represents the message state of the [`ServiceBusReceivedMessage`]
+/// Represents the message state of the [`ReceivedMessage`]
 #[derive(Debug)]
-pub enum ServiceBusMessageState {
+pub enum MessageState {
     /// Specifies an active message state.
     Active = 0,
 
@@ -18,24 +18,24 @@ pub enum ServiceBusMessageState {
 }
 
 // azservicebus.message.go #L399
-impl Default for ServiceBusMessageState {
+impl Default for MessageState {
     fn default() -> Self {
         Self::Active
     }
 }
 
-impl From<i64> for ServiceBusMessageState {
+impl From<i64> for MessageState {
     fn from(value: i64) -> Self {
         match value {
-            1 => ServiceBusMessageState::Deferred,
-            2 => ServiceBusMessageState::Scheduled,
-            _ => ServiceBusMessageState::Active,
+            1 => MessageState::Deferred,
+            2 => MessageState::Scheduled,
+            _ => MessageState::Active,
         }
     }
 }
 
-impl From<ServiceBusMessageState> for i64 {
-    fn from(value: ServiceBusMessageState) -> Self {
+impl From<MessageState> for i64 {
+    fn from(value: MessageState) -> Self {
         value as i64
     }
 }

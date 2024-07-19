@@ -9,13 +9,13 @@ use crate::{
     constants::DEFAULT_LAST_PEEKED_SEQUENCE_NUMBER,
     core::{TransportClient, TransportConnectionScope},
     primitives::{
-        service_bus_retry_options::ServiceBusRetryOptions,
+        service_bus_retry_options::RetryOptions,
         service_bus_retry_policy::ServiceBusRetryPolicyExt,
-        service_bus_transport_type::ServiceBusTransportType,
+        service_bus_transport_type::TransportType,
     },
-    receiver::service_bus_receive_mode::ServiceBusReceiveMode,
+    receiver::service_bus_receive_mode::ReceiveMode,
     sealed::Sealed,
-    ServiceBusRetryPolicy,
+    RetryPolicy,
 };
 
 use super::{
@@ -41,7 +41,7 @@ pub struct AmqpClient<RP> {
     connection_scope: Arc<Mutex<AmqpConnectionScope>>,
 
     /// Keep a copy of the transport type to avoid having to lock the connection_scope
-    transport_type: ServiceBusTransportType,
+    transport_type: TransportType,
 
     /// Retry policy phantom
     retry_policy: PhantomData<RP>,
@@ -74,7 +74,7 @@ where
     async fn create_transport_client(
         host: &str,
         credential: ServiceBusTokenCredential,
-        transport_type: ServiceBusTransportType,
+        transport_type: TransportType,
         custom_endpoint: Option<Url>,
         retry_timeout: Duration,
     ) -> Result<Self, Self::CreateClientError> {
@@ -101,7 +101,7 @@ where
         })
     }
 
-    fn transport_type(&self) -> ServiceBusTransportType {
+    fn transport_type(&self) -> TransportType {
         // `transport_type` is a simple enum, cloning should be cheap
         self.transport_type
     }
@@ -114,7 +114,7 @@ where
         &mut self,
         entity_path: String,
         identifier: String,
-        retry_options: ServiceBusRetryOptions,
+        retry_options: RetryOptions,
     ) -> Result<Self::Sender, Self::CreateSenderError> {
         let mut connection_scope = self.connection_scope.lock().await;
 
@@ -130,7 +130,7 @@ where
             service_endpoint: self.service_endpoint.clone(),
             entity_path,
             identifier_str: identifier,
-            retry_policy: Box::new(retry_policy) as Box<dyn ServiceBusRetryPolicy>,
+            retry_policy: Box::new(retry_policy) as Box<dyn RetryPolicy>,
             sender,
             management_link,
             cbs_command_sender,
@@ -142,8 +142,8 @@ where
         &mut self,
         entity_path: String,
         identifier: String,
-        retry_options: ServiceBusRetryOptions,
-        receive_mode: ServiceBusReceiveMode,
+        retry_options: RetryOptions,
+        receive_mode: ReceiveMode,
         prefetch_count: u32,
     ) -> Result<Self::Receiver, Self::CreateReceiverError> {
         let mut connection_scope = self.connection_scope.lock().await;
@@ -167,7 +167,7 @@ where
             service_endpoint: self.service_endpoint.clone(),
             entity_path,
             identifier_str: identifier,
-            retry_policy: Box::new(retry_policy) as Box<dyn ServiceBusRetryPolicy>,
+            retry_policy: Box::new(retry_policy) as Box<dyn RetryPolicy>,
             receiver,
             receive_mode,
             _is_processor: false,
@@ -184,8 +184,8 @@ where
         &mut self,
         entity_path: String,
         identifier: String,
-        retry_options: ServiceBusRetryOptions,
-        receive_mode: ServiceBusReceiveMode,
+        retry_options: RetryOptions,
+        receive_mode: ReceiveMode,
         session_id: Option<String>,
         prefetch_count: u32,
     ) -> Result<Self::SessionReceiver, Self::CreateReceiverError> {
@@ -209,7 +209,7 @@ where
             service_endpoint: self.service_endpoint.clone(),
             entity_path,
             identifier_str: identifier,
-            retry_policy: Box::new(retry_policy) as Box<dyn ServiceBusRetryPolicy>,
+            retry_policy: Box::new(retry_policy) as Box<dyn RetryPolicy>,
             receiver,
             receive_mode,
             _is_processor: false,
@@ -228,7 +228,7 @@ where
         &mut self,
         subscription_path: String,
         identifier: String,
-        retry_options: ServiceBusRetryOptions,
+        retry_options: RetryOptions,
     ) -> Result<Self::RuleManager, Self::CreateRuleManagerError> {
         let mut connection_scope = self.connection_scope.lock().await;
         let retry_policy = RP::from(retry_options);
@@ -239,7 +239,7 @@ where
             identifier_str: identifier,
             service_endpoint: self.service_endpoint.clone(),
             subscription_path,
-            retry_policy: Box::new(retry_policy) as Box<dyn ServiceBusRetryPolicy>,
+            retry_policy: Box::new(retry_policy) as Box<dyn RetryPolicy>,
             management_link,
             connection_scope: self.connection_scope.clone(),
         })
@@ -261,25 +261,25 @@ where
 }
 
 fn format_service_endpoint(host: &str) -> Result<Url, url::ParseError> {
-    let addr = format!("{}://{}", ServiceBusTransportType::AMQP_SCHEME, host);
+    let addr = format!("{}://{}", TransportType::AMQP_SCHEME, host);
     Url::parse(&addr)
 }
 
 #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
 fn format_connection_endpoint(
     host: &str,
-    transport_type: ServiceBusTransportType,
+    transport_type: TransportType,
     custom_endpoint: Option<Url>,
     service_endpoint: &Url,
 ) -> Result<Url, url::ParseError> {
     match custom_endpoint.as_ref().and_then(|url| url.host_str()) {
         Some(custom_host) => match transport_type {
             #[cfg(not(target_arch = "wasm32"))]
-            ServiceBusTransportType::AmqpTcp => {
+            TransportType::AmqpTcp => {
                 let addr = format!("{}://{}", transport_type.url_scheme(), custom_host);
                 Url::parse(&addr)
             }
-            ServiceBusTransportType::AmqpWebSocket => {
+            TransportType::AmqpWebSocket => {
                 let addr = format!(
                     "{}://{}{}",
                     transport_type.url_scheme(),
@@ -291,8 +291,8 @@ fn format_connection_endpoint(
         },
         None => match transport_type {
             #[cfg(not(target_arch = "wasm32"))]
-            ServiceBusTransportType::AmqpTcp => Ok(service_endpoint.clone()),
-            ServiceBusTransportType::AmqpWebSocket => {
+            TransportType::AmqpTcp => Ok(service_endpoint.clone()),
+            TransportType::AmqpWebSocket => {
                 let addr = format!(
                     "{}://{}{}",
                     transport_type.url_scheme(),

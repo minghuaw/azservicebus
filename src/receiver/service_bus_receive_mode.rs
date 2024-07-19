@@ -2,12 +2,12 @@
 
 /// The mode in which to receive messages.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum ServiceBusReceiveMode {
+pub enum ReceiveMode {
     /// Once a message is received in this mode, the receiver has a lock on the message for a
     /// particular duration. If the message is not settled by this time, it lands back on Service
     /// Bus to be fetched by the next receive operation.
     ///
-    /// This is the default value for [`ServiceBusReceiveMode`], and should be used for
+    /// This is the default value for [`ReceiveMode`], and should be used for
     /// guaranteed delivery.
     PeekLock,
 
@@ -16,7 +16,7 @@ pub enum ServiceBusReceiveMode {
     ReceiveAndDelete,
 }
 
-impl Default for ServiceBusReceiveMode {
+impl Default for ReceiveMode {
     fn default() -> Self {
         Self::PeekLock
     }

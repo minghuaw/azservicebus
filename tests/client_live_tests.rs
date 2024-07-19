@@ -37,8 +37,8 @@ mod macros;
 cfg_not_wasm32! {
     use azservicebus::{
         authorization::AzureNamedKeyCredential,
-        ServiceBusClient, ServiceBusClientOptions,
-        ServiceBusTransportType,
+        Client, ClientOptions,
+        TransportType,
     };
 
     mod common;
@@ -49,10 +49,10 @@ cfg_not_wasm32! {
         setup_dotenv();
 
         let connection_string = std::env::var("SERVICE_BUS_CONNECTION_STRING").unwrap();
-        let mut option = ServiceBusClientOptions::default();
-        option.transport_type = ServiceBusTransportType::AmqpTcp;
+        let mut option = ClientOptions::default();
+        option.transport_type = TransportType::AmqpTcp;
 
-        let mut client = ServiceBusClient::new_from_connection_string(&connection_string, option)
+        let mut client = Client::new_from_connection_string(&connection_string, option)
             .await
             .unwrap();
 
@@ -73,10 +73,10 @@ cfg_not_wasm32! {
         setup_dotenv();
 
         let connection_string = std::env::var("SERVICE_BUS_CONNECTION_STRING").unwrap();
-        let mut option = ServiceBusClientOptions::default();
-        option.transport_type = ServiceBusTransportType::AmqpWebSocket;
+        let mut option = ClientOptions::default();
+        option.transport_type = TransportType::AmqpWebSocket;
 
-        let mut client = ServiceBusClient::new_from_connection_string(&connection_string, option)
+        let mut client = Client::new_from_connection_string(&connection_string, option)
             .await
             .unwrap();
 
@@ -103,7 +103,7 @@ cfg_not_wasm32! {
 
         let credential = AzureNamedKeyCredential::new(key_name, key);
         let mut client =
-            ServiceBusClient::new_from_named_key_credential(namespace, credential, Default::default())
+            Client::new_from_named_key_credential(namespace, credential, Default::default())
                 .await
                 .unwrap();
 

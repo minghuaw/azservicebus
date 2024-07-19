@@ -8,15 +8,15 @@ use crate::{
         shared_access_credential::SharedAccessCredential,
         shared_access_signature::SharedAccessSignature,
     },
-    client::service_bus_client::ServiceBusClientOptions,
+    client::service_bus_client::ClientOptions,
     core::TransportClient,
-    ServiceBusReceiveMode,
+    ReceiveMode,
 };
 
 use super::{
-    error::{Error, ArgumentError}, service_bus_connection_string_properties::ServiceBusConnectionStringProperties,
-    service_bus_retry_options::ServiceBusRetryOptions,
-    service_bus_transport_type::ServiceBusTransportType,
+    error::{Error, ArgumentError}, service_bus_connection_string_properties::ConnectionStringProperties,
+    service_bus_retry_options::RetryOptions,
+    service_bus_transport_type::TransportType,
 };
 
 macro_rules! ok_if_not_none_or_empty {
@@ -37,7 +37,7 @@ macro_rules! ok_if_not_none_or_empty {
 
 /// Builds the audience of the connection for use in the signature.
 pub(crate) fn build_connection_resource(
-    transport_type: &ServiceBusTransportType,
+    transport_type: &TransportType,
     fully_qualified_namespace: Option<&str>,
     entity_name: Option<&str>,
 ) -> Result<String, Error> {
@@ -71,11 +71,11 @@ pub(crate) fn build_connection_resource(
 
 /// A connection to the Azure Service Bus service, enabling client communications with a specific
 /// Service Bus entity instance within a Service Bus namespace. There is a one-to-one correspondence
-/// between [`ServiceBusClient`] and [`ServiceBusConnection`] instances.
+/// between [`Client`] and [`ServiceBusConnection`] instances.
 #[derive(Debug)]
 pub(crate) struct ServiceBusConnection<C> {
     fully_qualified_namespace: String,
-    retry_options: ServiceBusRetryOptions,
+    retry_options: RetryOptions,
 
     pub(crate) inner_client: C,
 }
@@ -96,7 +96,7 @@ where
     }
 
     /// The retry options associated with this connection.
-    pub fn retry_options(&self) -> &ServiceBusRetryOptions {
+    pub fn retry_options(&self) -> &RetryOptions {
         &self.retry_options
     }
 }
@@ -106,7 +106,7 @@ where
     C: TransportClient,
 {
     /// The transport type used for this connection.
-    pub fn transport_type(&self) -> ServiceBusTransportType {
+    pub fn transport_type(&self) -> TransportType {
         self.inner_client.transport_type()
     }
 
@@ -114,7 +114,7 @@ where
         &mut self,
         entity_path: String,
         identifier: String,
-        retry_options: ServiceBusRetryOptions,
+        retry_options: RetryOptions,
     ) -> Result<C::Sender, C::CreateSenderError> {
         let sender = self
             .inner_client
@@ -128,8 +128,8 @@ where
         &mut self,
         entity_path: String,
         identifier: String,
-        retry_options: ServiceBusRetryOptions,
-        receive_mode: ServiceBusReceiveMode,
+        retry_options: RetryOptions,
+        receive_mode: ReceiveMode,
         prefetch_count: u32,
     ) -> Result<C::Receiver, C::CreateReceiverError> {
         let receiver = self
@@ -150,8 +150,8 @@ where
         &mut self,
         entity_path: String,
         identifier: String,
-        retry_options: ServiceBusRetryOptions,
-        receive_mode: ServiceBusReceiveMode,
+        retry_options: RetryOptions,
+        receive_mode: ReceiveMode,
         prefetch_count: u32,
         session_id: Option<String>,
     ) -> Result<C::SessionReceiver, C::CreateReceiverError> {
@@ -174,7 +174,7 @@ where
         &mut self,
         susbcription_path: String,
         identifier: String,
-        retry_options: ServiceBusRetryOptions,
+        retry_options: RetryOptions,
     ) -> Result<C::RuleManager, C::CreateRuleManagerError> {
         let rule_manager = self
             .inner_client
@@ -192,10 +192,10 @@ where
 {
     pub(crate) async fn new(
         connection_string: Cow<'_, str>,
-        options: ServiceBusClientOptions,
+        options: ClientOptions,
     ) -> Result<Self, Error> {
         let connection_string_properties =
-            ServiceBusConnectionStringProperties::parse(connection_string.as_ref())?;
+            ConnectionStringProperties::parse(connection_string.as_ref())?;
         validate_connection_string_properties(&connection_string_properties, "connection_string")?;
 
         let fully_qualified_namespace = connection_string_properties
@@ -262,7 +262,7 @@ where
     pub(crate) async fn new_from_credential(
         fully_qualified_namespace: String,
         credential: impl Into<ServiceBusTokenCredential>,
-        options: ServiceBusClientOptions,
+        options: ClientOptions,
     ) -> Result<ServiceBusConnection<C>, C::CreateClientError> {
         let token_credential: ServiceBusTokenCredential = credential.into();
         let inner_client = C::create_transport_client(
@@ -294,7 +294,7 @@ fn is_none_or_empty(s: Option<&str>) -> bool {
 }
 
 fn validate_connection_string_properties(
-    connection_string_properties: &ServiceBusConnectionStringProperties,
+    connection_string_properties: &ConnectionStringProperties,
     connection_string_argument_name: &str,
 ) -> Result<(), Error> {
     let has_shared_key = !is_none_or_empty(connection_string_properties.shared_access_key_name())

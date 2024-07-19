@@ -6,7 +6,7 @@ use fe2o3_amqp_types::primitives::{Binary, OrderedMap};
 use serde_amqp::Value;
 
 use crate::amqp::management_constants::properties::{MESSAGE, MESSAGES};
-use crate::primitives::service_bus_peeked_message::ServiceBusPeekedMessage;
+use crate::primitives::service_bus_peeked_message::PeekedMessage;
 
 use super::{HTTP_STATUS_CODE_NO_CONTENT, HTTP_STATUS_CODE_OK};
 
@@ -32,13 +32,13 @@ pub(crate) fn get_messages_from_body(
 }
 
 impl PeekMessageResponse {
-    pub fn into_peeked_messages(self) -> Result<Vec<ServiceBusPeekedMessage>, serde_amqp::Error> {
+    pub fn into_peeked_messages(self) -> Result<Vec<PeekedMessage>, serde_amqp::Error> {
         self.messages
             .into_iter()
             .map(|buf| {
                 let raw_amqp_message: Deserializable<Message<Body<Value>>> =
                     serde_amqp::from_slice(&buf)?;
-                let message = ServiceBusPeekedMessage {
+                let message = PeekedMessage {
                     raw_amqp_message: raw_amqp_message.0,
                 };
                 Ok(message)

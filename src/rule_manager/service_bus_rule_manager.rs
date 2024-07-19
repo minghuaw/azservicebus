@@ -11,13 +11,13 @@ use crate::{
     core::TransportRuleManager, util::IntoAzureCoreError,
 };
 
-/// A `ServiceBusRuleManager` is used to manage rules for a subscription.
+/// A `RuleManager` is used to manage rules for a subscription.
 #[derive(Debug)]
-pub struct ServiceBusRuleManager {
+pub struct RuleManager {
     pub(crate) inner: AmqpRuleManager,
 }
 
-impl ServiceBusRuleManager {
+impl RuleManager {
     const MAX_RULES_PER_REQUEST: i32 = 100;
 
     /// Get the ID to identify this client.

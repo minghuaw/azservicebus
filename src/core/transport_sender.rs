@@ -1,14 +1,14 @@
-use crate::{sealed::Sealed, CreateMessageBatchOptions, ServiceBusMessage};
+use crate::{sealed::Sealed, CreateMessageBatchOptions, Message};
 
 use super::TransportMessageBatch;
 
 // Conditional import for docs.rs
 #[cfg(docsrs)]
-use crate::ServiceBusSender;
+use crate::Sender;
 
 /// Provides an abstraction for generalizing an Service Bus entity Producer so that a dedicated
 /// instance may provide operations for a specific transport, such as AMQP or JMS.  It is intended
-/// that the public [`ServiceBusSender`] employ a transport producer via containment and delegate
+/// that the public [`Sender`] employ a transport producer via containment and delegate
 /// operations to it rather than understanding protocol-specific details for different transports.
 pub(crate) trait TransportSender: Sealed {
     /// Error with sending a message
@@ -32,7 +32,7 @@ pub(crate) trait TransportSender: Sealed {
     /// Get the identifier
     fn identifier(&self) -> &str;
 
-    /// Creates a size-constraint batch to which [`ServiceBusMessage`] may be added using
+    /// Creates a size-constraint batch to which [`Message`] may be added using
     /// a try-based pattern.  If a message would exceed the maximum allowable size of the batch, the
     /// batch will not allow adding the message and signal that scenario using its return value.
     ///
@@ -49,7 +49,7 @@ pub(crate) trait TransportSender: Sealed {
     /// in a batch, use [`TransportSender::send_batch`] instead.
     async fn send(
         &mut self,
-        messages: impl ExactSizeIterator<Item = ServiceBusMessage> + Send,
+        messages: impl ExactSizeIterator<Item = Message> + Send,
     ) -> Result<(), Self::SendError>;
 
     /// Sends a [`Self::MessageBatch`] to the associated Queue/Topic.
@@ -61,7 +61,7 @@ pub(crate) trait TransportSender: Sealed {
     /// Schedules a list of messages to appear on Service Bus at a later time.
     async fn schedule_messages(
         &mut self,
-        messages: impl Iterator<Item = ServiceBusMessage> + Send,
+        messages: impl Iterator<Item = Message> + Send,
     ) -> Result<Vec<i64>, Self::ScheduleError>;
 
     /// Cancels one or more messages that were scheduled.

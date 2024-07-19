@@ -1,5 +1,5 @@
 use azservicebus::{
-    ServiceBusClient, ServiceBusClientOptions, ServiceBusReceiverOptions, ServiceBusSenderOptions,
+    Client, ClientOptions, ReceiverOptions, SenderOptions,
 };
 
 #[tokio::main]
@@ -10,19 +10,19 @@ async fn main() -> Result<(), anyhow::Error> {
     let topic_name = std::env::var("SERVICE_BUS_TOPIC")?;
     let subscription_name = std::env::var("SERVICE_BUS_SUBSCRIPTION")?;
 
-    let mut client = ServiceBusClient::new_from_connection_string(
+    let mut client = Client::new_from_connection_string(
         connection_string,
-        ServiceBusClientOptions::default(),
+        ClientOptions::default(),
     )
     .await?;
     let mut sender = client
-        .create_sender(&topic_name, ServiceBusSenderOptions::default())
+        .create_sender(&topic_name, SenderOptions::default())
         .await?;
     let mut receiver = client
         .create_receiver_for_subscription(
             topic_name,
             subscription_name,
-            ServiceBusReceiverOptions::default(),
+            ReceiverOptions::default(),
         )
         .await?;
 

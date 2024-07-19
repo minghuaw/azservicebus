@@ -2,10 +2,10 @@ use rand::Rng;
 use std::{fmt::Display, time::Duration};
 
 use crate::primitives::{
-    service_bus_retry_mode::ServiceBusRetryMode,
-    service_bus_retry_options::ServiceBusRetryOptions,
+    service_bus_retry_mode::RetryMode,
+    service_bus_retry_options::RetryOptions,
     service_bus_retry_policy::{
-        ServiceBusRetryPolicy, ServiceBusRetryPolicyError, ServiceBusRetryPolicyState,
+        RetryPolicy, ServiceBusRetryPolicyError, ServiceBusRetryPolicyState,
     },
 };
 
@@ -54,10 +54,10 @@ impl ServiceBusRetryPolicyState for BasicRetryPolicyState {
 }
 
 /// The default retry policy for the Service Bus client library, respecting the
-/// configuration specified as a set of [`ServiceBusRetryOptions`].
+/// configuration specified as a set of [`RetryOptions`].
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct BasicRetryPolicy {
-    options: ServiceBusRetryOptions,
+    options: RetryOptions,
     state: BasicRetryPolicyState,
 }
 
@@ -67,8 +67,8 @@ impl Display for BasicRetryPolicy {
     }
 }
 
-impl From<ServiceBusRetryOptions> for BasicRetryPolicy {
-    fn from(options: ServiceBusRetryOptions) -> Self {
+impl From<RetryOptions> for BasicRetryPolicy {
+    fn from(options: RetryOptions) -> Self {
         Self {
             options,
             state: BasicRetryPolicyState::default(),
@@ -76,8 +76,8 @@ impl From<ServiceBusRetryOptions> for BasicRetryPolicy {
     }
 }
 
-impl ServiceBusRetryPolicy for BasicRetryPolicy {
-    fn options(&self) -> &ServiceBusRetryOptions {
+impl RetryPolicy for BasicRetryPolicy {
+    fn options(&self) -> &RetryOptions {
         &self.options
     }
 
@@ -109,12 +109,12 @@ impl ServiceBusRetryPolicy for BasicRetryPolicy {
         let base_jitter_seconds = self.options.delay.as_secs_f64() * JITTER_FACTOR;
         let mut rng = rand::thread_rng();
         let retry_delay = match self.options.mode {
-            ServiceBusRetryMode::Fixed => calculate_fixed_delay(
+            RetryMode::Fixed => calculate_fixed_delay(
                 self.options.delay.as_secs_f64(),
                 base_jitter_seconds,
                 &mut rng,
             ),
-            ServiceBusRetryMode::Exponential => calculate_exponential_delay(
+            RetryMode::Exponential => calculate_exponential_delay(
                 attempt_count,
                 self.options.delay.as_secs_f64(),
                 base_jitter_seconds,

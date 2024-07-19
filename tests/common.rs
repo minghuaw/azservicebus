@@ -3,18 +3,18 @@
 use std::time::Duration as StdDuration;
 
 use azservicebus::{
-    ServiceBusClient, ServiceBusClientOptions, ServiceBusMessage, ServiceBusPeekedMessage,
-    ServiceBusReceivedMessage, ServiceBusReceiverOptions, ServiceBusRetryOptions, ServiceBusSender,
-    ServiceBusSenderOptions, ServiceBusSessionReceiverOptions,
+    Client, ClientOptions, Message, PeekedMessage,
+    ReceivedMessage, ReceiverOptions, RetryOptions, ServiceBusSender,
+    SenderOptions, SessionReceiverOptions,
 };
 use time::OffsetDateTime;
 
 #[allow(dead_code)]
-pub fn zero_retry_options() -> ServiceBusRetryOptions {
-    ServiceBusRetryOptions {
+pub fn zero_retry_options() -> RetryOptions {
+    RetryOptions {
         max_retries: 0,
         mode: Default::default(),
-        delay: ServiceBusRetryOptions::DEFAULT_DELAY,
+        delay: RetryOptions::DEFAULT_DELAY,
         max_delay: StdDuration::from_secs(10),
         try_timeout: StdDuration::from_secs(10),
     }
@@ -28,13 +28,13 @@ pub fn setup_dotenv() {
 #[allow(dead_code)]
 pub async fn create_client_and_send_messages_separately_to_queue_or_topic(
     connection_string: &str,
-    client_options: ServiceBusClientOptions,
+    client_options: ClientOptions,
     queue_or_topic_name: &str,
-    sender_options: ServiceBusSenderOptions,
-    messages: impl Iterator<Item = impl Into<ServiceBusMessage>>,
+    sender_options: SenderOptions,
+    messages: impl Iterator<Item = impl Into<Message>>,
 ) -> Result<(), anyhow::Error> {
     let mut client =
-        ServiceBusClient::new_from_connection_string(connection_string, client_options).await?;
+        Client::new_from_connection_string(connection_string, client_options).await?;
     let mut sender = client
         .create_sender(queue_or_topic_name, sender_options)
         .await?;
@@ -49,7 +49,7 @@ pub async fn create_client_and_send_messages_separately_to_queue_or_topic(
 #[allow(dead_code)]
 pub async fn send_messages_separately(
     sender: &mut ServiceBusSender,
-    messages: impl Iterator<Item = impl Into<ServiceBusMessage>>,
+    messages: impl Iterator<Item = impl Into<Message>>,
 ) -> Result<(), anyhow::Error> {
     for message in messages {
         sender.send_message(message).await?;
@@ -60,14 +60,14 @@ pub async fn send_messages_separately(
 #[allow(dead_code)]
 pub async fn create_client_and_receive_messages_from_queue(
     connection_string: &str,
-    client_options: ServiceBusClientOptions,
+    client_options: ClientOptions,
     queue_name: &str,
-    receiver_options: ServiceBusReceiverOptions,
+    receiver_options: ReceiverOptions,
     max_messages: u32,
     max_wait_time: Option<StdDuration>,
-) -> Result<Vec<ServiceBusReceivedMessage>, anyhow::Error> {
+) -> Result<Vec<ReceivedMessage>, anyhow::Error> {
     let mut client =
-        ServiceBusClient::new_from_connection_string(connection_string, client_options).await?;
+        Client::new_from_connection_string(connection_string, client_options).await?;
     let mut receiver = client
         .create_receiver_for_queue(queue_name, receiver_options)
         .await?;
@@ -88,15 +88,15 @@ pub async fn create_client_and_receive_messages_from_queue(
 #[allow(dead_code)]
 pub async fn create_client_and_receive_sessionful_messages_from_queue(
     connection_string: &str,
-    client_options: ServiceBusClientOptions,
+    client_options: ClientOptions,
     queue_name: &str,
-    receiver_options: ServiceBusSessionReceiverOptions,
+    receiver_options: SessionReceiverOptions,
     session_id: Option<String>,
     max_messages: u32,
     max_wait_time: Option<StdDuration>,
-) -> Result<Vec<ServiceBusReceivedMessage>, anyhow::Error> {
+) -> Result<Vec<ReceivedMessage>, anyhow::Error> {
     let mut client =
-        ServiceBusClient::new_from_connection_string(connection_string, client_options).await?;
+        Client::new_from_connection_string(connection_string, client_options).await?;
     let mut receiver = match session_id {
         Some(session_id) => {
             client
@@ -126,15 +126,15 @@ pub async fn create_client_and_receive_sessionful_messages_from_queue(
 #[allow(dead_code)]
 pub async fn create_client_and_receive_messages_from_subscription(
     connection_string: &str,
-    client_options: ServiceBusClientOptions,
+    client_options: ClientOptions,
     topic_name: &str,
     subscription_name: &str,
-    receiver_options: ServiceBusReceiverOptions,
+    receiver_options: ReceiverOptions,
     max_messages: u32,
     max_wait_time: Option<StdDuration>,
-) -> Result<Vec<ServiceBusReceivedMessage>, anyhow::Error> {
+) -> Result<Vec<ReceivedMessage>, anyhow::Error> {
     let mut client =
-        ServiceBusClient::new_from_connection_string(connection_string, client_options).await?;
+        Client::new_from_connection_string(connection_string, client_options).await?;
     let mut receiver = client
         .create_receiver_for_subscription(topic_name, subscription_name, receiver_options)
         .await?;
@@ -155,16 +155,16 @@ pub async fn create_client_and_receive_messages_from_subscription(
 #[allow(dead_code)]
 pub async fn create_client_and_receive_sessionful_messages_from_subscription(
     connection_string: &str,
-    client_options: ServiceBusClientOptions,
+    client_options: ClientOptions,
     topic_name: &str,
     subscription_name: &str,
-    receiver_options: ServiceBusSessionReceiverOptions,
+    receiver_options: SessionReceiverOptions,
     session_id: String,
     max_messages: u32,
     max_wait_time: Option<StdDuration>,
-) -> Result<Vec<ServiceBusReceivedMessage>, anyhow::Error> {
+) -> Result<Vec<ReceivedMessage>, anyhow::Error> {
     let mut client =
-        ServiceBusClient::new_from_connection_string(connection_string, client_options).await?;
+        Client::new_from_connection_string(connection_string, client_options).await?;
     let mut receiver = client
         .accept_session_for_subscription(
             topic_name,
@@ -190,14 +190,14 @@ pub async fn create_client_and_receive_sessionful_messages_from_subscription(
 #[allow(dead_code)]
 pub async fn create_client_and_abandon_messages_from_queue(
     connection_string: &str,
-    client_options: ServiceBusClientOptions,
+    client_options: ClientOptions,
     queue_name: &str,
-    receiver_options: ServiceBusReceiverOptions,
+    receiver_options: ReceiverOptions,
     max_messages: u32,
     max_wait_time: Option<StdDuration>,
-) -> Result<Vec<ServiceBusReceivedMessage>, anyhow::Error> {
+) -> Result<Vec<ReceivedMessage>, anyhow::Error> {
     let mut client =
-        ServiceBusClient::new_from_connection_string(connection_string, client_options).await?;
+        Client::new_from_connection_string(connection_string, client_options).await?;
     let mut receiver = client
         .create_receiver_for_queue(queue_name, receiver_options)
         .await?;
@@ -218,14 +218,14 @@ pub async fn create_client_and_abandon_messages_from_queue(
 #[allow(dead_code)]
 pub async fn create_client_and_deadletter_messages_from_queue(
     connection_string: &str,
-    client_options: ServiceBusClientOptions,
+    client_options: ClientOptions,
     queue_name: &str,
-    receiver_options: ServiceBusReceiverOptions,
+    receiver_options: ReceiverOptions,
     max_messages: u32,
     max_wait_time: Option<StdDuration>,
-) -> Result<Vec<ServiceBusReceivedMessage>, anyhow::Error> {
+) -> Result<Vec<ReceivedMessage>, anyhow::Error> {
     let mut client =
-        ServiceBusClient::new_from_connection_string(connection_string, client_options).await?;
+        Client::new_from_connection_string(connection_string, client_options).await?;
     let mut receiver = client
         .create_receiver_for_queue(queue_name, receiver_options)
         .await?;
@@ -248,14 +248,14 @@ pub async fn create_client_and_deadletter_messages_from_queue(
 #[allow(dead_code)]
 pub async fn create_client_and_schedule_messages(
     connection_string: &str,
-    client_options: ServiceBusClientOptions,
+    client_options: ClientOptions,
     queue_name: &str,
-    sender_options: ServiceBusSenderOptions,
-    messages: impl Iterator<Item = impl Into<ServiceBusMessage>> + ExactSizeIterator + Send,
+    sender_options: SenderOptions,
+    messages: impl Iterator<Item = impl Into<Message>> + ExactSizeIterator + Send,
     enqueue_time: OffsetDateTime,
 ) -> Result<Vec<i64>, anyhow::Error> {
     let mut client =
-        ServiceBusClient::new_from_connection_string(connection_string, client_options).await?;
+        Client::new_from_connection_string(connection_string, client_options).await?;
     let mut sender = client.create_sender(queue_name, sender_options).await?;
 
     let sequence_numbers = sender.schedule_messages(messages, enqueue_time).await?;
@@ -268,13 +268,13 @@ pub async fn create_client_and_schedule_messages(
 #[allow(dead_code)]
 pub async fn create_client_and_peek_messages(
     connection_string: &str,
-    client_options: ServiceBusClientOptions,
+    client_options: ClientOptions,
     queue_name: &str,
-    receiver_options: ServiceBusReceiverOptions,
+    receiver_options: ReceiverOptions,
     max_messages: u32,
-) -> Result<Vec<ServiceBusPeekedMessage>, anyhow::Error> {
+) -> Result<Vec<PeekedMessage>, anyhow::Error> {
     let mut client =
-        ServiceBusClient::new_from_connection_string(connection_string, client_options).await?;
+        Client::new_from_connection_string(connection_string, client_options).await?;
     let mut receiver = client
         .create_receiver_for_queue(queue_name, receiver_options)
         .await?;
@@ -289,14 +289,14 @@ pub async fn create_client_and_peek_messages(
 #[allow(dead_code)]
 pub async fn create_client_and_defer_messages(
     connection_string: &str,
-    client_options: ServiceBusClientOptions,
+    client_options: ClientOptions,
     queue_name: &str,
-    receiver_options: ServiceBusReceiverOptions,
+    receiver_options: ReceiverOptions,
     max_messages: u32,
     max_wait_time: Option<StdDuration>,
 ) -> Result<Vec<i64>, anyhow::Error> {
     let mut client =
-        ServiceBusClient::new_from_connection_string(connection_string, client_options).await?;
+        Client::new_from_connection_string(connection_string, client_options).await?;
     let mut receiver = client
         .create_receiver_for_queue(queue_name, receiver_options)
         .await?;
@@ -317,13 +317,13 @@ pub async fn create_client_and_defer_messages(
 #[allow(dead_code)]
 pub async fn create_client_and_receive_deferred_messages(
     connection_string: &str,
-    client_options: ServiceBusClientOptions,
+    client_options: ClientOptions,
     queue_name: &str,
-    receiver_options: ServiceBusReceiverOptions,
+    receiver_options: ReceiverOptions,
     sequence_numbers: Vec<i64>,
-) -> Result<Vec<ServiceBusReceivedMessage>, anyhow::Error> {
+) -> Result<Vec<ReceivedMessage>, anyhow::Error> {
     let mut client =
-        ServiceBusClient::new_from_connection_string(connection_string, client_options).await?;
+        Client::new_from_connection_string(connection_string, client_options).await?;
     let mut receiver = client
         .create_receiver_for_queue(queue_name, receiver_options)
         .await?;

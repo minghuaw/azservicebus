@@ -1,4 +1,4 @@
-use azservicebus::{ServiceBusClient, ServiceBusClientOptions, ServiceBusSenderOptions};
+use azservicebus::{Client, ClientOptions, SenderOptions};
 use azure_identity::{DefaultAzureCredential, TokenCredentialOptions};
 
 #[tokio::main]
@@ -10,16 +10,16 @@ async fn main() -> Result<(), anyhow::Error> {
     let queue_name = std::env::var("SERVICE_BUS_QUEUE")?;
 
     let credential = DefaultAzureCredential::create(TokenCredentialOptions::default()).unwrap();
-    let mut client = ServiceBusClient::new_from_credential(
+    let mut client = Client::new_from_credential(
         namespace,
         credential,
-        ServiceBusClientOptions::default(),
+        ClientOptions::default(),
     )
     .await?;
 
     // Create a sender for auth purpose only
     let sender = client
-        .create_sender(queue_name, ServiceBusSenderOptions::default())
+        .create_sender(queue_name, SenderOptions::default())
         .await?;
 
     sender.dispose().await?;

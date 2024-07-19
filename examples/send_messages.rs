@@ -7,15 +7,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Replace "<NAMESPACE-CONNECTION-STRING>" with your connection string,
     // which can be found in the Azure portal and should look like
     // "Endpoint=sb://<NAMESPACE>.servicebus.windows.net/;SharedAccessKeyName=<KEY_NAME>;SharedAccessKey=<KEY_VALUE>"
-    let mut client = ServiceBusClient::new_from_connection_string(
+    let mut client = Client::new_from_connection_string(
         "<NAMESPACE-CONNECTION-STRING>",
-        ServiceBusClientOptions::default(),
+        ClientOptions::default(),
     )
     .await?;
 
     // Replace "<QUEUE-NAME>" with the name of your queue
     let mut sender = client
-        .create_sender("<QUEUE-NAME>", ServiceBusSenderOptions::default())
+        .create_sender("<QUEUE-NAME>", SenderOptions::default())
         .await?;
 
     // Create a batch
@@ -23,7 +23,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     for i in 0..3 {
         // Create a message
-        let message = ServiceBusMessage::new(format!("Message {}", i));
+        let message = Message::new(format!("Message {}", i));
         // Try to add the message to the batch
         if let Err(e) = message_batch.try_add_message(message) {
             // If the batch is full, an error will be returned

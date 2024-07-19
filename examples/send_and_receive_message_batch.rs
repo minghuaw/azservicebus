@@ -1,16 +1,16 @@
 use azservicebus::{
-    CreateMessageBatchOptions, ServiceBusClient, ServiceBusClientOptions, ServiceBusMessage,
-    ServiceBusReceiver, ServiceBusSender,
+    CreateMessageBatchOptions, Client, ClientOptions, Message,
+    Receiver, Sender,
 };
 
-async fn send_batch(mut sender: ServiceBusSender) -> Result<(), anyhow::Error> {
+async fn send_batch(mut sender: Sender) -> Result<(), anyhow::Error> {
     let mut batch = sender.create_message_batch(CreateMessageBatchOptions::default())?;
 
     // Add messages to the batch
     // The three lines below are all equivalent
     batch.try_add_message("Message 1")?;
-    batch.try_add_message(ServiceBusMessage::new("Message 2"))?;
-    batch.try_add_message(ServiceBusMessage::from("Message 3"))?;
+    batch.try_add_message(Message::new("Message 2"))?;
+    batch.try_add_message(Message::from("Message 3"))?;
 
     // Send the batch
     sender.send_message_batch(batch).await?;
@@ -19,7 +19,7 @@ async fn send_batch(mut sender: ServiceBusSender) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-async fn receive_messages(mut receiver: ServiceBusReceiver) -> Result<(), anyhow::Error> {
+async fn receive_messages(mut receiver: Receiver) -> Result<(), anyhow::Error> {
     // This will wait indefinitely until at least one message is received
     let received = receiver.receive_messages(3).await?;
     for message in received {
@@ -38,9 +38,9 @@ async fn main() -> Result<(), anyhow::Error> {
     let connection_string = std::env::var("SERVICE_BUS_CONNECTION_STRING")?;
     let queue_name = std::env::var("SERVICE_BUS_QUEUE")?;
 
-    let mut client = ServiceBusClient::new_from_connection_string(
+    let mut client = Client::new_from_connection_string(
         connection_string,
-        ServiceBusClientOptions::default(),
+        ClientOptions::default(),
     )
     .await?;
 

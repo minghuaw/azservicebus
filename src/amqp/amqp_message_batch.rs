@@ -8,9 +8,9 @@ use super::{
     error::TryAddMessageError,
 };
 
-/// A set of [`ServiceBusMessage`] with size constraints known up-front, intended to be
-/// sent to the Queue/Topic as a single batch. A [`ServiceBusMessageBatch`] can be
-/// created using `ServiceBusSender::create_message_batch()`.
+/// A set of [`Message`] with size constraints known up-front, intended to be
+/// sent to the Queue/Topic as a single batch. A [`MessageBatch`] can be
+/// created using `Sender::create_message_batch()`.
 /// Messages can be added to the batch using the [`try_add_message`] method on the batch.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AmqpMessageBatch {
@@ -57,7 +57,7 @@ impl TransportMessageBatch for AmqpMessageBatch {
 
     fn try_add_message(
         &mut self,
-        message: crate::ServiceBusMessage,
+        message: crate::Message,
     ) -> Result<(), Self::TryAddError> {
         let serializable_message = Serializable(&message.amqp_message);
 
@@ -126,7 +126,7 @@ impl TransportMessageBatch for AmqpMessageBatch {
 
 #[cfg(test)]
 mod tests {
-    use crate::ServiceBusMessage;
+    use crate::Message;
 
     use super::*;
 
@@ -149,7 +149,7 @@ mod tests {
     fn try_add_sets_batch_size_in_bytes() {
         let overhead = OVERHEAD_BYTES_SMALL_MESSAGE; // The messages added are small
         let mut batch = AmqpMessageBatch::new(1024);
-        let message = ServiceBusMessage::new("hello world");
+        let message = Message::new("hello world");
 
         let serializable = Serializable(&message.amqp_message);
         let size = serialized_size(&serializable).unwrap();
@@ -166,7 +166,7 @@ mod tests {
     #[test]
     fn try_add_accepts_message_smaller_than_max_size() {
         let mut batch = AmqpMessageBatch::new(1024);
-        let message = ServiceBusMessage::new("hello world");
+        let message = Message::new("hello world");
 
         // Make sure the message is smaller than the max size
         let serializable = Serializable(message.amqp_message.clone());
@@ -179,7 +179,7 @@ mod tests {
     #[test]
     fn try_add_does_not_accept_message_larger_than_max_size() {
         let mut batch = AmqpMessageBatch::new(1024);
-        let message = ServiceBusMessage::new(vec![0u8; 1025]);
+        let message = Message::new(vec![0u8; 1025]);
 
         // Make sure the message is larger than the max size
         let serializable = Serializable(message.amqp_message.clone());
@@ -198,7 +198,7 @@ mod tests {
         };
         let mut batch = AmqpMessageBatch::new(max_size_in_bytes);
 
-        let message = ServiceBusMessage::new("hello world");
+        let message = Message::new("hello world");
 
         let mut cumulated_size_in_bytes = 0;
         loop {
@@ -220,7 +220,7 @@ mod tests {
         let mut batch = AmqpMessageBatch::new(1024);
 
         let messages: Vec<_> = (0..5)
-            .map(|i| ServiceBusMessage::new(format!("message {}", i)))
+            .map(|i| Message::new(format!("message {}", i)))
             .collect();
         for message in messages.iter() {
             assert!(batch.try_add_message(message.clone()).is_ok());
@@ -235,7 +235,7 @@ mod tests {
     #[test]
     fn clear_resets_batch_len_and_size_in_bytes() {
         let mut batch = AmqpMessageBatch::new(1024);
-        let message = ServiceBusMessage::new("hello world");
+        let message = Message::new("hello world");
 
         assert!(batch.try_add_message(message.clone()).is_ok());
         assert_eq!(batch.len(), 1);

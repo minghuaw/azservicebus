@@ -1,16 +1,16 @@
-//! Implements `ServiceBusMessageBatch`.
+//! Implements `MessageBatch`.
 
-use fe2o3_amqp_types::messaging::{Data, Message};
+use fe2o3_amqp_types::messaging::{Data, Message as AmqpMessage};
 
 use crate::{
     amqp::{amqp_message_batch::AmqpMessageBatch, error::TryAddMessageError},
     core::TransportMessageBatch,
-    ServiceBusMessage,
+    Message,
 };
 
 // Conditional import for docs.rs
 #[cfg(docsrs)]
-use crate::ServiceBusSender;
+use crate::Sender;
 
 /// The set of options that can be specified to influence the way in which an service bus message
 /// batch behaves and is sent to the Queue/Topic.
@@ -20,10 +20,10 @@ pub struct CreateMessageBatchOptions {
     pub max_size_in_bytes: Option<u64>,
 }
 
-/// A set of [`ServiceBusMessage`] with size constraints known up-front, intended to be sent to the
+/// A set of [`Message`] with size constraints known up-front, intended to be sent to the
 /// Queue/Topic as a single batch.
 ///
-/// A [`ServiceBusMessageBatch`] can be created using [`ServiceBusSender::create_message_batch`].
+/// A [`MessageBatch`] can be created using [`Sender::create_message_batch`].
 /// Messages can be added to the batch using the [`Self::try_add_message`] method on the batch.
 ///
 /// # Examples
@@ -40,11 +40,11 @@ pub struct CreateMessageBatchOptions {
 /// sender.send_message_batch(message_batch).await.unwrap();
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ServiceBusMessageBatch {
+pub struct MessageBatch {
     pub(crate) inner: AmqpMessageBatch,
 }
 
-impl ServiceBusMessageBatch {
+impl MessageBatch {
     /// The maximum size of the batch, in bytes.
     pub fn max_size_in_bytes(&self) -> u64 {
         self.inner.max_size_in_bytes()
@@ -65,20 +65,20 @@ impl ServiceBusMessageBatch {
         self.inner.is_empty()
     }
 
-    /// Attempts to add a [`ServiceBusMessage`] to the [`ServiceBusMessageBatch`].
+    /// Attempts to add a [`Message`] to the [`MessageBatch`].
     ///
     /// Returns an error if the message is too large to fit in the batch or
     /// if the message fails to serialize. The original message can be recovered
     /// from the error.
     pub fn try_add_message(
         &mut self,
-        message: impl Into<ServiceBusMessage>,
+        message: impl Into<Message>,
     ) -> Result<(), TryAddMessageError> {
         self.inner.try_add_message(message.into())
     }
 
     /// Iterate over the messages in the batch.
-    pub fn iter(&self) -> std::slice::Iter<'_, Message<Data>> {
+    pub fn iter(&self) -> std::slice::Iter<'_, AmqpMessage<Data>> {
         self.inner.iter()
     }
 

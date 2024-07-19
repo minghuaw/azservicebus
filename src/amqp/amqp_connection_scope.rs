@@ -27,9 +27,9 @@ use crate::{
     authorization::{service_bus_claim, service_bus_token_credential::ServiceBusTokenCredential},
     core::{RecoverableTransport, TransportConnectionScope},
     entity_name_formatter,
-    primitives::service_bus_transport_type::ServiceBusTransportType,
+    primitives::service_bus_transport_type::TransportType,
     sealed::Sealed,
-    ServiceBusReceiveMode,
+    ReceiveMode,
 };
 
 use super::{
@@ -66,7 +66,7 @@ pub(crate) struct AmqpConnectionScope {
     connection_endpoint: Url,
 
     /// The type of transport to use for communication.
-    transport_type: ServiceBusTransportType,
+    transport_type: TransportType,
 
     /// A handle to the AMQP connection that is active for the current scope.
     connection: AmqpConnection,
@@ -114,7 +114,7 @@ impl AmqpConnectionScope {
         service_endpoint: &Url,
         connection_endpoint: Url, // FIXME: this will be the same as service_endpoint if a custom endpoint is not supplied
         credential: ServiceBusTokenCredential,
-        transport_type: ServiceBusTransportType,
+        transport_type: TransportType,
     ) -> Result<Self, AmqpConnectionScopeError> {
         // `Guid` from dotnet:
         // This is a convenient static method that you can call to get a new Guid. The method
@@ -175,7 +175,7 @@ impl AmqpConnectionScope {
 
     async fn open_connection(
         connection_endpoint: &Url,
-        transport_type: &ServiceBusTransportType,
+        transport_type: &TransportType,
         scope_identifier: &str,
         // timeout: TimeSpan, // FIXME: do timeout outside?
     ) -> Result<ConnectionHandle<()>, AmqpConnectionScopeError> {
@@ -197,11 +197,11 @@ impl AmqpConnectionScope {
             .idle_time_out(idle_time_out);
         match transport_type {
             #[cfg(not(target_arch = "wasm32"))]
-            ServiceBusTransportType::AmqpTcp => connection_builder
+            TransportType::AmqpTcp => connection_builder
                 .open(connection_endpoint.clone())
                 .await
                 .map_err(Into::into),
-            ServiceBusTransportType::AmqpWebSocket => {
+            TransportType::AmqpWebSocket => {
                 let ws_stream = WebSocketStream::connect(connection_endpoint).await?;
 
                 #[cfg(not(target_arch = "wasm32"))]
@@ -350,7 +350,7 @@ impl AmqpConnectionScope {
         service_endpoint: &Url,
         entity_path: &str,
         identifier: &str,
-        receive_mode: &ServiceBusReceiveMode,
+        receive_mode: &ReceiveMode,
         receiver_type: ReceiverType,
         prefetch_count: u32,
     ) -> Result<
@@ -426,7 +426,7 @@ impl AmqpConnectionScope {
 // Reference:
 // https://github.com/Azure/azure-amqp/blob/c6242a5dad1a1638dfee53282e08c8440913e8f7/src/AmqpLinkSettings.cs#L88
 fn service_bus_receive_mode_to_amqp(
-    mode: &ServiceBusReceiveMode,
+    mode: &ReceiveMode,
 ) -> (Option<SenderSettleMode>, Option<ReceiverSettleMode>) {
     // switch (value)
     // {
@@ -441,9 +441,9 @@ fn service_bus_receive_mode_to_amqp(
     // }
     match mode {
         // SettleOnDispose
-        ServiceBusReceiveMode::PeekLock => (None, Some(ReceiverSettleMode::Second)),
+        ReceiveMode::PeekLock => (None, Some(ReceiverSettleMode::Second)),
         // SettleOnSend
-        ServiceBusReceiveMode::ReceiveAndDelete => (Some(SenderSettleMode::Settled), None),
+        ReceiveMode::ReceiveAndDelete => (Some(SenderSettleMode::Settled), None),
     }
 }
 

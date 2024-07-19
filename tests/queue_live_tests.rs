@@ -36,9 +36,9 @@ mod macros;
 
 cfg_not_wasm32! {
     use azservicebus::{
-        ServiceBusClient, ServiceBusClientOptions,
+        Client, ClientOptions,
         SubQueue,
-        ServiceBusMessage, ServiceBusReceiverOptions,
+        Message, ReceiverOptions,
     };
     use std::time::Duration as StdDuration;
 
@@ -150,7 +150,7 @@ cfg_not_wasm32! {
         let connection_string = std::env::var("SERVICE_BUS_CONNECTION_STRING")?;
         let queue_name = std::env::var("SERVICE_BUS_QUEUE")?;
 
-        let message = ServiceBusMessage::new("test message");
+        let message = Message::new("test message");
         let messages = std::iter::once(message);
         let total = messages.len();
 
@@ -184,7 +184,7 @@ cfg_not_wasm32! {
         let connection_string = std::env::var("SERVICE_BUS_CONNECTION_STRING")?;
         let queue_name = std::env::var("SERVICE_BUS_QUEUE")?;
 
-        let message = ServiceBusMessage::new("test message");
+        let message = Message::new("test message");
         let messages = std::iter::once(message);
         let total = messages.len();
 
@@ -197,7 +197,7 @@ cfg_not_wasm32! {
         )
         .await?;
 
-        let mut receiver_client_options = ServiceBusClientOptions::default();
+        let mut receiver_client_options = ClientOptions::default();
         receiver_client_options.retry_options = common::zero_retry_options();
 
         let received = common::create_client_and_receive_messages_from_queue(
@@ -225,9 +225,9 @@ cfg_not_wasm32! {
 
         let expected = ["test message 1", "test message 2", "test message 3"];
         let messages = vec![
-            ServiceBusMessage::new(expected[0]),
-            ServiceBusMessage::new(expected[1]),
-            ServiceBusMessage::new(expected[2]),
+            Message::new(expected[0]),
+            Message::new(expected[1]),
+            Message::new(expected[2]),
         ];
         let total = messages.len();
 
@@ -267,9 +267,9 @@ cfg_not_wasm32! {
 
         let expected = ["test message 1", "test message 2", "test message 3"];
         let messages = vec![
-            ServiceBusMessage::new(expected[0]),
-            ServiceBusMessage::new(expected[1]),
-            ServiceBusMessage::new(expected[2]),
+            Message::new(expected[0]),
+            Message::new(expected[1]),
+            Message::new(expected[2]),
         ];
         let max_messages = messages.len() as u32;
 
@@ -282,7 +282,7 @@ cfg_not_wasm32! {
         )
         .await?;
 
-        let mut receiver_options = ServiceBusReceiverOptions::default();
+        let mut receiver_options = ReceiverOptions::default();
         receiver_options.prefetch_count = max_messages;
         common::create_client_and_receive_messages_from_queue(
             &connection_string,
@@ -304,7 +304,7 @@ cfg_not_wasm32! {
 
         let expected = ["test message 1", "test message 2", "test message 3"];
 
-        let mut client = ServiceBusClient::new_from_connection_string(&connection_string, Default::default()).await?;
+        let mut client = Client::new_from_connection_string(&connection_string, Default::default()).await?;
         let mut sender = client
             .create_sender(&queue_name, Default::default())
             .await?;
@@ -342,7 +342,7 @@ cfg_not_wasm32! {
 
         let expected = ["test message 1", "test message 2", "test message 3"];
 
-        let mut client = ServiceBusClient::new_from_connection_string(&connection_string, Default::default()).await?;
+        let mut client = Client::new_from_connection_string(&connection_string, Default::default()).await?;
         let mut sender = client
             .create_sender(&queue_name, Default::default())
             .await?;
@@ -354,7 +354,7 @@ cfg_not_wasm32! {
         }
         sender.send_message_batch(message_batch).await?;
 
-        let mut receiving_client_options = ServiceBusClientOptions::default();
+        let mut receiving_client_options = ClientOptions::default();
         receiving_client_options.retry_options = common::zero_retry_options();
 
         let received = common::create_client_and_receive_messages_from_queue(
@@ -385,7 +385,7 @@ cfg_not_wasm32! {
         let expected = ["test message 1", "test message 2", "test message 3"];
         let session_id = "test_session";
         let messages = expected.iter().map(|message| {
-            let mut message = ServiceBusMessage::new(message.as_bytes());
+            let mut message = Message::new(message.as_bytes());
             message.set_session_id(String::from(session_id)).unwrap();
             message
         });
@@ -461,7 +461,7 @@ cfg_not_wasm32! {
 
         // Send 2nd session id first
         let messages = expected_for_session_id_2.iter().map(|message| {
-            let mut message = ServiceBusMessage::new(message.as_bytes());
+            let mut message = Message::new(message.as_bytes());
             message.set_session_id(String::from(session_id_2)).unwrap();
             message
         });
@@ -476,7 +476,7 @@ cfg_not_wasm32! {
 
         // Send 1st session id last
         let messages = expected_for_session_id_1.iter().map(|message| {
-            let mut message = ServiceBusMessage::new(*message);
+            let mut message = Message::new(*message);
             message.set_session_id(String::from(session_id_1)).unwrap(); // length must not exceed max length
             message
         });
@@ -524,12 +524,12 @@ cfg_not_wasm32! {
         let connection_string = std::env::var("SERVICE_BUS_CONNECTION_STRING")?;
         let queue_name = std::env::var("SERVICE_BUS_SESSION_QUEUE")?;
 
-        let mut client = ServiceBusClient::new_from_connection_string(connection_string, Default::default()).await?;
+        let mut client = Client::new_from_connection_string(connection_string, Default::default()).await?;
         let mut sender = client
             .create_sender(&queue_name, Default::default())
             .await?;
 
-        let mut session_message = ServiceBusMessage::new("test message");
+        let mut session_message = Message::new("test message");
         session_message.set_session_id(String::from("test_session_1"))?;
         sender.send_message(session_message).await?;
 
@@ -557,7 +557,7 @@ cfg_not_wasm32! {
         let expected = ["test message 1", "test message 2", "test message 3"];
         let messages = expected
             .iter()
-            .map(|message| ServiceBusMessage::new(*message));
+            .map(|message| Message::new(*message));
 
         common::create_client_and_send_messages_separately_to_queue_or_topic(
             &connection_string,
@@ -605,7 +605,7 @@ cfg_not_wasm32! {
         let expected = ["test message 1", "test message 2", "test message 3"];
         let messages = expected
             .iter()
-            .map(|message| ServiceBusMessage::new(*message));
+            .map(|message| Message::new(*message));
 
         common::create_client_and_send_messages_separately_to_queue_or_topic(
             &connection_string,
@@ -626,7 +626,7 @@ cfg_not_wasm32! {
         )
         .await?;
 
-        let mut receiver_options = ServiceBusReceiverOptions::default();
+        let mut receiver_options = ReceiverOptions::default();
         receiver_options.sub_queue = SubQueue::DeadLetter;
         let received = common::create_client_and_receive_messages_from_queue(
             &connection_string,
@@ -655,7 +655,7 @@ cfg_not_wasm32! {
         let expected = ["test message 1", "test message 2", "test message 3"];
         let messages = expected
             .iter()
-            .map(|message| ServiceBusMessage::new(*message));
+            .map(|message| Message::new(*message));
 
         let wait_time = StdDuration::from_secs(30);
         let enqueue_time = OffsetDateTime::now_utc() + wait_time;
@@ -700,9 +700,9 @@ cfg_not_wasm32! {
         let expected = ["test message 1", "test message 2", "test message 3"];
         let messages = expected
             .iter()
-            .map(|message| ServiceBusMessage::new(*message));
+            .map(|message| Message::new(*message));
 
-        let mut client = ServiceBusClient::new_from_connection_string(&connection_string, Default::default()).await?;
+        let mut client = Client::new_from_connection_string(&connection_string, Default::default()).await?;
         let mut sender = client
             .create_sender(&queue_name, Default::default())
             .await?;
@@ -716,7 +716,7 @@ cfg_not_wasm32! {
         }
 
         tokio::time::sleep(wait_time).await;
-        let mut client_options = ServiceBusClientOptions::default();
+        let mut client_options = ClientOptions::default();
         client_options.retry_options = common::zero_retry_options();
 
         let received = common::create_client_and_receive_messages_from_queue(
@@ -741,7 +741,7 @@ cfg_not_wasm32! {
         let expected = ["test message 1", "test message 2", "test message 3"];
         let messages = expected
             .iter()
-            .map(|message| ServiceBusMessage::new(*message));
+            .map(|message| Message::new(*message));
 
         common::create_client_and_send_messages_separately_to_queue_or_topic(
             &connection_string,
@@ -808,7 +808,7 @@ cfg_not_wasm32! {
         let expected = ["test message 1", "test message 2", "test message 3"];
         let messages = expected
             .iter()
-            .map(|message| ServiceBusMessage::new(*message));
+            .map(|message| Message::new(*message));
 
         common::create_client_and_send_messages_separately_to_queue_or_topic(
             &connection_string,
@@ -857,7 +857,7 @@ cfg_not_wasm32! {
         let message = ["test message 1"];
         let messages = message
             .iter()
-            .map(|message| ServiceBusMessage::new(*message));
+            .map(|message| Message::new(*message));
         common::create_client_and_send_messages_separately_to_queue_or_topic(
             &connection_string,
             Default::default(),
@@ -867,7 +867,7 @@ cfg_not_wasm32! {
         )
         .await?;
 
-        let mut client = ServiceBusClient::new_from_connection_string(&connection_string, Default::default()).await?;
+        let mut client = Client::new_from_connection_string(&connection_string, Default::default()).await?;
         let mut receiver = client
             .create_receiver_for_queue(queue_name, Default::default())
             .await?;
@@ -901,7 +901,7 @@ cfg_not_wasm32! {
         let queue_name = std::env::var("SERVICE_BUS_QUEUE")?;
 
         let mut client =
-            ServiceBusClient::new_from_connection_string(connection_string, ServiceBusClientOptions::default()).await?;
+            Client::new_from_connection_string(connection_string, ClientOptions::default()).await?;
 
         // Create a sender and then send a batch of messages
         let mut sender = client
@@ -909,7 +909,7 @@ cfg_not_wasm32! {
             .await?;
 
         let time_to_live = Duration::from_secs(600);
-        let mut message = ServiceBusMessage::new("test message 1");
+        let mut message = Message::new("test message 1");
         message.set_time_to_live(time_to_live)?;
         sender.send_message(message).await?;
 

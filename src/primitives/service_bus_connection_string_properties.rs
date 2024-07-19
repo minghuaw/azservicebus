@@ -38,7 +38,7 @@ pub enum ToConnectionStringError {
 
 /// The set of properties that comprise a Service Bus connection string.
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub struct ServiceBusConnectionStringProperties<'a> {
+pub struct ConnectionStringProperties<'a> {
     pub(crate) endpoint: Option<url::Url>,
     pub(crate) entity_path: Option<&'a str>,
     pub(crate) shared_access_key_name: Option<&'a str>,
@@ -46,7 +46,7 @@ pub struct ServiceBusConnectionStringProperties<'a> {
     pub(crate) shared_access_signature: Option<&'a str>,
 }
 
-impl<'a> ServiceBusConnectionStringProperties<'a> {
+impl<'a> ConnectionStringProperties<'a> {
     /// The character used to separate a token and its value in the connection string.
     const TOKEN_VALUE_SEPARATOR: char = '=';
 
@@ -107,7 +107,7 @@ impl<'a> ServiceBusConnectionStringProperties<'a> {
     }
 
     /// Creates an Service Bus connection string based on this set of
-    /// [`ServiceBusConnectionStringProperties`].
+    /// [`ConnectionStringProperties`].
     pub fn to_connection_string(&self) -> Result<String, ToConnectionStringError> {
         let mut s = String::new();
 
@@ -242,7 +242,7 @@ impl<'a> ServiceBusConnectionStringProperties<'a> {
 mod tests {
     use crate::primitives::service_bus_connection_string_properties::FormatError;
 
-    use super::ServiceBusConnectionStringProperties;
+    use super::ConnectionStringProperties;
 
     const ENDPOINT: &str = "test.endpoint.com";
     const EVENT_HUB: &str = "some-path";
@@ -260,7 +260,7 @@ mod tests {
 
     macro_rules! assert_parsed_and_expected {
         ($connection_string:ident, $expected:ident) => {
-            let parsed = ServiceBusConnectionStringProperties::parse(&$connection_string).unwrap();
+            let parsed = ConnectionStringProperties::parse(&$connection_string).unwrap();
 
             assert_eq!(
                 parsed.endpoint().and_then(|url| url.host_str()),
@@ -470,10 +470,10 @@ mod tests {
     }
 
     fn to_connection_string_validates_properties_cases(
-    ) -> Vec<ServiceBusConnectionStringProperties<'static>> {
+    ) -> Vec<ConnectionStringProperties<'static>> {
         let mut cases = Vec::new();
         // "missing endpoint"
-        let case = ServiceBusConnectionStringProperties {
+        let case = ConnectionStringProperties {
             endpoint: None,
             entity_path: Some("fake"),
             shared_access_signature: Some("fake"),
@@ -483,7 +483,7 @@ mod tests {
         cases.push(case);
 
         // "missing authorization"
-        let case = ServiceBusConnectionStringProperties {
+        let case = ConnectionStringProperties {
             endpoint: Some(url::Url::parse("sb://someplace.hosname.ext").unwrap()),
             entity_path: Some("fake"),
             shared_access_signature: None,
@@ -493,7 +493,7 @@ mod tests {
         cases.push(case);
 
         // "SAS and key specified"
-        let case = ServiceBusConnectionStringProperties {
+        let case = ConnectionStringProperties {
             endpoint: Some(url::Url::parse("sb://someplace.hosname.ext").unwrap()),
             entity_path: Some("fake"),
             shared_access_signature: Some("fake"),
@@ -503,7 +503,7 @@ mod tests {
         cases.push(case);
 
         // "SAS and shared key name specified"
-        let case = ServiceBusConnectionStringProperties {
+        let case = ConnectionStringProperties {
             endpoint: Some(url::Url::parse("sb://someplace.hosname.ext").unwrap()),
             entity_path: Some("fake"),
             shared_access_signature: Some("fake"),
@@ -513,7 +513,7 @@ mod tests {
         cases.push(case);
 
         // "only shared key name specified"
-        let case = ServiceBusConnectionStringProperties {
+        let case = ConnectionStringProperties {
             endpoint: Some(url::Url::parse("sb://someplace.hosname.ext").unwrap()),
             entity_path: Some("fake"),
             shared_access_signature: None,
@@ -523,7 +523,7 @@ mod tests {
         cases.push(case);
 
         // "only shared key specified"
-        let case = ServiceBusConnectionStringProperties {
+        let case = ConnectionStringProperties {
             endpoint: Some(url::Url::parse("sb://someplace.hosname.ext").unwrap()),
             entity_path: Some("fake"),
             shared_access_signature: None,
@@ -542,7 +542,7 @@ mod tests {
         let sas_key_name = "sasName";
         let shared_access_signature = "fakeSAS";
         let connection_string = format!("Endpoint=sb://{endpoint};SharedAccessKeyName={sas_key_name};SharedAccessKey={sas_key};SharedAccessSignature={shared_access_signature}");
-        let parsed = ServiceBusConnectionStringProperties::parse(&connection_string).unwrap();
+        let parsed = ConnectionStringProperties::parse(&connection_string).unwrap();
 
         assert_eq!(
             parsed.endpoint().and_then(|url| url.host_str()),
@@ -565,7 +565,7 @@ mod tests {
         let sas_key_name = "sasName";
         let shared_access_signature = "fakeSAS";
         let connection_string = format!("Endpoint=sb://{endpoint};SharedAccessKeyName={sas_key_name};SharedAccessKey={sas_key};EntityPath={event_hub};SharedAccessSignature={shared_access_signature}");
-        let parsed = ServiceBusConnectionStringProperties::parse(&connection_string).unwrap();
+        let parsed = ConnectionStringProperties::parse(&connection_string).unwrap();
 
         assert_eq!(
             parsed.endpoint().and_then(|url| url.host_str()),
@@ -596,7 +596,7 @@ mod tests {
         let sas_key = "sasKey";
         let sas_key_name = "sasName";
         let connection_string = format!(";Endpoint=sb://{endpoint};SharedAccessKeyName={sas_key_name};SharedAccessKey={sas_key};EntityPath={event_hub}");
-        let parsed = ServiceBusConnectionStringProperties::parse(&connection_string).unwrap();
+        let parsed = ConnectionStringProperties::parse(&connection_string).unwrap();
 
         assert_eq!(
             parsed.endpoint().and_then(|url| url.host_str()),
@@ -614,7 +614,7 @@ mod tests {
         let sas_key = "sasKey";
         let sas_key_name = "sasName";
         let connection_string = format!("Endpoint=sb://{endpoint}; SharedAccessKeyName={sas_key_name}; SharedAccessKey={sas_key}; EntityPath={event_hub}");
-        let parsed = ServiceBusConnectionStringProperties::parse(&connection_string).unwrap();
+        let parsed = ConnectionStringProperties::parse(&connection_string).unwrap();
 
         assert_eq!(
             parsed.endpoint().and_then(|url| url.host_str()),
@@ -632,7 +632,7 @@ mod tests {
         let sas_key = "sasKey";
         let sas_key_name = "sasName";
         let connection_string = format!("Endpoint = sb://{endpoint};SharedAccessKeyName ={sas_key_name};SharedAccessKey= {sas_key}; EntityPath  =  {event_hub}");
-        let parsed = ServiceBusConnectionStringProperties::parse(&connection_string).unwrap();
+        let parsed = ConnectionStringProperties::parse(&connection_string).unwrap();
 
         assert_eq!(
             parsed.endpoint().and_then(|url| url.host_str()),
@@ -659,7 +659,7 @@ mod tests {
         let sas_key = "sasKey";
         let sas_key_name = "sasName";
         let connection_string = format!("Endpoint=sb://{endpoint};SharedAccessKeyName={sas_key_name};Unknown=INVALID;SharedAccessKey={sas_key};EntityPath={event_hub};Trailing=WHOAREYOU");
-        let parsed = ServiceBusConnectionStringProperties::parse(&connection_string).unwrap();
+        let parsed = ConnectionStringProperties::parse(&connection_string).unwrap();
 
         assert_eq!(
             parsed.endpoint().and_then(|url| url.host_str()),
@@ -683,7 +683,7 @@ mod tests {
 
         for endpoint_value in endpoint_values {
             let connection_string = format!("Endpoint={};EntityPath=dummy", endpoint_value);
-            let parsed = ServiceBusConnectionStringProperties::parse(&connection_string).unwrap();
+            let parsed = ConnectionStringProperties::parse(&connection_string).unwrap();
 
             assert_eq!(
                 parsed.endpoint().and_then(|url| url.host_str()),
@@ -696,7 +696,7 @@ mod tests {
     fn parse_does_not_allow_an_invalid_endpoint_format() {
         let endpoint = "test.endpoint.com";
         let connection_string = format!("Endpoint={}", endpoint);
-        let result = ServiceBusConnectionStringProperties::parse(&connection_string);
+        let result = ConnectionStringProperties::parse(&connection_string);
         assert!(result.is_err());
     }
 
@@ -712,7 +712,7 @@ mod tests {
         ];
 
         for test_case in test_cases {
-            let result = ServiceBusConnectionStringProperties::parse(test_case);
+            let result = ConnectionStringProperties::parse(test_case);
             assert_eq!(result, Err(FormatError::InvalidConnectionString));
         }
     }
@@ -729,7 +729,7 @@ mod tests {
 
     #[test]
     fn to_connection_string_produces_the_connection_string_for_shared_access_signatures() {
-        let properties = ServiceBusConnectionStringProperties {
+        let properties = ConnectionStringProperties {
             endpoint: Some("sb://place.endpoint.ext".parse().unwrap()),
             entity_path: Some("HubName"),
             shared_access_signature: Some("FaKe#$1324@@"),
@@ -742,14 +742,14 @@ mod tests {
         let connection_string = connection_string.unwrap();
         assert!(!connection_string.is_empty());
 
-        let parsed = ServiceBusConnectionStringProperties::parse(&connection_string);
+        let parsed = ConnectionStringProperties::parse(&connection_string);
         assert!(parsed.is_ok());
         assert_eq!(properties, parsed.unwrap());
     }
 
     #[test]
     fn to_connection_string_produces_the_connection_string_for_shared_keys() {
-        let properties = ServiceBusConnectionStringProperties {
+        let properties = ConnectionStringProperties {
             endpoint: Some("sb://place.endpoint.ext".parse().unwrap()),
             entity_path: Some("HubName"),
             shared_access_signature: None,
@@ -762,7 +762,7 @@ mod tests {
         let connection_string = connection_string.unwrap();
         assert!(!connection_string.is_empty());
 
-        let parsed = ServiceBusConnectionStringProperties::parse(&connection_string);
+        let parsed = ConnectionStringProperties::parse(&connection_string);
         assert!(parsed.is_ok());
         assert_eq!(properties, parsed.unwrap());
     }
@@ -777,7 +777,7 @@ mod tests {
 
         for scheme in schemes {
             let endpoint = format!("{}myhub.servicebus.windows.net", scheme);
-            let properties = ServiceBusConnectionStringProperties {
+            let properties = ConnectionStringProperties {
                 endpoint: Some(url::Url::parse(&endpoint).unwrap()),
                 entity_path: Some("HubName"),
                 shared_access_signature: None,
@@ -793,7 +793,7 @@ mod tests {
     #[test]
     fn to_connection_string_returns_ok_with_servicebus_endpoint_scheme() {
         let endpoint = "sb://myhub.servicebus.windows.net";
-        let properties = ServiceBusConnectionStringProperties {
+        let properties = ConnectionStringProperties {
             endpoint: Some(url::Url::parse(endpoint).unwrap()),
             entity_path: Some("HubName"),
             shared_access_signature: None,
@@ -805,7 +805,7 @@ mod tests {
         assert!(connection_string.is_ok());
         let connection_string = connection_string.unwrap();
 
-        let parsed = ServiceBusConnectionStringProperties::parse(&connection_string);
+        let parsed = ConnectionStringProperties::parse(&connection_string);
         assert!(parsed.is_ok());
         assert_eq!(properties, parsed.unwrap());
     }
@@ -813,7 +813,7 @@ mod tests {
     #[test]
     fn to_connection_string_allows_shared_access_key_authorization() {
         let fake_connection = "Endpoint=sb://not-real.servicebus.windows.net/;SharedAccessKeyName=DummyKey;SharedAccessKey=[not_real]";
-        let properties = ServiceBusConnectionStringProperties::parse(fake_connection).unwrap();
+        let properties = ConnectionStringProperties::parse(fake_connection).unwrap();
 
         assert!(properties.to_connection_string().is_ok());
     }
@@ -822,7 +822,7 @@ mod tests {
     fn to_connection_string_allows_shared_access_signature_authorization() {
         let fake_connection =
             "Endpoint=sb://not-real.servicebus.windows.net/;SharedAccessSignature=[not_real]";
-        let properties = ServiceBusConnectionStringProperties::parse(fake_connection).unwrap();
+        let properties = ConnectionStringProperties::parse(fake_connection).unwrap();
 
         assert!(properties.to_connection_string().is_ok());
     }

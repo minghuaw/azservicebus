@@ -1,4 +1,4 @@
-use azservicebus::{ServiceBusClient, ServiceBusClientOptions};
+use azservicebus::{Client, ClientOptions};
 
 /// Creates a separate client and receiver and then abandons a message.
 async fn create_a_client_and_abandon_a_message() -> Result<(), anyhow::Error> {
@@ -7,9 +7,9 @@ async fn create_a_client_and_abandon_a_message() -> Result<(), anyhow::Error> {
     let connection_string = std::env::var("SERVICE_BUS_CONNECTION_STRING")?;
     let queue_name = std::env::var("SERVICE_BUS_QUEUE")?;
 
-    let mut client = ServiceBusClient::new_from_connection_string(
+    let mut client = Client::new_from_connection_string(
         connection_string,
-        ServiceBusClientOptions::default(),
+        ClientOptions::default(),
     )
     .await?;
 
@@ -34,9 +34,9 @@ async fn main() -> Result<(), anyhow::Error> {
     let connection_string = std::env::var("SERVICE_BUS_CONNECTION_STRING")?;
     let queue_name = std::env::var("SERVICE_BUS_QUEUE")?;
 
-    let mut client = ServiceBusClient::new_from_connection_string(
+    let mut client = Client::new_from_connection_string(
         connection_string,
-        ServiceBusClientOptions::default(),
+        ClientOptions::default(),
     )
     .await?;
 

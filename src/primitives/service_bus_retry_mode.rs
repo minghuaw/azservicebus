@@ -3,7 +3,7 @@
 /// The type of approach to apply when calculating the delay
 /// between retry attempts.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum ServiceBusRetryMode {
+pub enum RetryMode {
     /// Retry attempts happen at fixed intervals; each delay is a consistent duration.
     Fixed,
 
@@ -11,7 +11,7 @@ pub enum ServiceBusRetryMode {
     Exponential,
 }
 
-impl Default for ServiceBusRetryMode {
+impl Default for RetryMode {
     fn default() -> Self {
         Self::Exponential
     }

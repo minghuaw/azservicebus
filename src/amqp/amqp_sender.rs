@@ -15,8 +15,8 @@ use crate::sealed::Sealed;
 use crate::sender::MINIMUM_BATCH_SIZE_LIMIT;
 use crate::{
     core::TransportSender,
-    primitives::service_bus_retry_policy::{run_operation, ServiceBusRetryPolicy},
-    CreateMessageBatchOptions, ServiceBusMessage,
+    primitives::service_bus_retry_policy::{run_operation, RetryPolicy},
+    CreateMessageBatchOptions, Message,
 };
 
 use super::amqp_cbs_link;
@@ -43,7 +43,7 @@ pub struct AmqpSender {
     pub(crate) service_endpoint: Arc<Url>,
     pub(crate) entity_path: String,
     pub(crate) identifier_str: String,
-    pub(crate) retry_policy: Box<dyn ServiceBusRetryPolicy>,
+    pub(crate) retry_policy: Box<dyn RetryPolicy>,
     pub(crate) sender: fe2o3_amqp::Sender,
     pub(crate) management_link: AmqpManagementLink,
     pub(crate) cbs_command_sender: mpsc::Sender<amqp_cbs_link::Command>,
@@ -170,7 +170,7 @@ impl TransportSender for AmqpSender {
         &self.identifier_str
     }
 
-    /// Creates a size-constraint batch to which [`ServiceBusMessage`] may be added using
+    /// Creates a size-constraint batch to which [`Message`] may be added using
     /// a try-based pattern.  If a message would exceed the maximum allowable size of the batch, the
     /// batch will not allow adding the message and returns an error.
     ///
@@ -203,7 +203,7 @@ impl TransportSender for AmqpSender {
     /// in a batch, use [`send_batch`] instead.
     async fn send(
         &mut self,
-        messages: impl ExactSizeIterator<Item = ServiceBusMessage> + Send,
+        messages: impl ExactSizeIterator<Item = Message> + Send,
     ) -> Result<(), Self::SendError> {
         let batch = batch_service_bus_messages_as_amqp_message(messages, false);
         let mut try_timeout = self.retry_policy.calculate_try_timeout(0);
@@ -225,7 +225,7 @@ impl TransportSender for AmqpSender {
         }
     }
 
-    /// Sends [`ServiceBusMessageBatch`] to the associated Queue/Topic.
+    /// Sends [`MessageBatch`] to the associated Queue/Topic.
     async fn send_batch(
         &mut self,
         message_batch: Self::MessageBatch,
@@ -251,7 +251,7 @@ impl TransportSender for AmqpSender {
 
     async fn schedule_messages(
         &mut self,
-        messages: impl Iterator<Item = ServiceBusMessage> + Send,
+        messages: impl Iterator<Item = Message> + Send,
     ) -> Result<Vec<i64>, Self::ScheduleError> {
         use super::scheduled_message::ScheduledBatchEnvelope;
         use fe2o3_amqp::link::SendError;

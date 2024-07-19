@@ -1,7 +1,7 @@
 use azservicebus::administration::{
     CorrelationRuleFilter, FalseRuleFilter, SqlRuleAction, SqlRuleFilter, TrueRuleFilter,
 };
-use azservicebus::ServiceBusClient;
+use azservicebus::Client;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -12,7 +12,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let subscription_name = std::env::var("SERVICE_BUS_SUBSCRIPTION")?;
 
     let mut client =
-        ServiceBusClient::new_from_connection_string(connection_string, Default::default()).await?;
+        Client::new_from_connection_string(connection_string, Default::default()).await?;
     let mut rule_manager = client
         .create_rule_manager(topic_name, subscription_name)
         .await?;

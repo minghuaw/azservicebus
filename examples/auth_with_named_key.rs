@@ -1,6 +1,6 @@
 use azservicebus::{
-    authorization::AzureNamedKeyCredential, ServiceBusClient, ServiceBusClientOptions,
-    ServiceBusSenderOptions,
+    authorization::AzureNamedKeyCredential, Client, ClientOptions,
+    SenderOptions,
 };
 
 #[tokio::main]
@@ -16,16 +16,16 @@ async fn main() -> Result<(), anyhow::Error> {
     let queue_name = std::env::var("SERVICE_BUS_QUEUE")?;
 
     let credential = AzureNamedKeyCredential::new(sas_key_name, sas_key);
-    let mut client = ServiceBusClient::new_from_named_key_credential(
+    let mut client = Client::new_from_named_key_credential(
         namespace,
         credential,
-        ServiceBusClientOptions::default(),
+        ClientOptions::default(),
     )
     .await?;
 
     // Create a sender for auth purpose only
     let sender = client
-        .create_sender(queue_name, ServiceBusSenderOptions::default())
+        .create_sender(queue_name, SenderOptions::default())
         .await?;
 
     sender.dispose().await?;

@@ -1,4 +1,4 @@
-//! Implements `ServiceBusSender` and `ServiceBusSenderOptions`
+//! Implements `Sender` and `SenderOptions`
 
 
 use time::OffsetDateTime;
@@ -9,31 +9,31 @@ use crate::{
         error::RequestedSizeOutOfRange,
     },
     core::TransportSender,
-    CreateMessageBatchOptions, ServiceBusMessage, ServiceBusMessageBatch, util::IntoAzureCoreError,
+    CreateMessageBatchOptions, Message, MessageBatch, util::IntoAzureCoreError,
 };
 
 // Conditional import for docs.rs
 #[cfg(docsrs)]
-use crate::ServiceBusClient;
+use crate::Client;
 
-/// The set of options that can be specified when creating a [`ServiceBusSender`]
+/// The set of options that can be specified when creating a [`Sender`]
 /// to configure its behavior.
 #[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ServiceBusSenderOptions {
-    /// A property used to set the [`ServiceBusSender`] ID to identify the client. This can be used
+pub struct SenderOptions {
+    /// A property used to set the [`Sender`] ID to identify the client. This can be used
     /// to correlate logs and exceptions. If `None` or empty, a random unique value will be used.
     pub identifier: Option<String>,
 }
 
-/// A client responsible for sending [`ServiceBusMessage`] to a specific Service Bus entity (Queue
+/// A client responsible for sending [`Message`] to a specific Service Bus entity (Queue
 /// or Topic). It can be used for both session and non-session entities. It is constructed by
-/// calling [`ServiceBusClient::create_sender`].
+/// calling [`Client::create_sender`].
 #[derive(Debug)]
-pub struct ServiceBusSender {
+pub struct Sender {
     pub(crate) inner: AmqpSender,
 }
 
-impl ServiceBusSender {
+impl Sender {
     /// The path of the entity that the sender is connected to, specific to the
     /// Service Bus namespace that contains it.
     pub fn entity_path(&self) -> &str {
@@ -45,8 +45,8 @@ impl ServiceBusSender {
         self.inner.identifier()
     }
 
-    /// Creates a size-constraint batch to which [`ServiceBusMessage`] may be added using
-    /// a [`ServiceBusMessageBatch::try_add_message`]. If a message would exceed the maximum
+    /// Creates a size-constraint batch to which [`Message`] may be added using
+    /// a [`MessageBatch::try_add_message`]. If a message would exceed the maximum
     /// allowable size of the batch, the batch will not allow adding the message and signal that
     /// scenario by returning an error.
     ///
@@ -55,21 +55,21 @@ impl ServiceBusSender {
     pub fn create_message_batch(
         &self,
         options: CreateMessageBatchOptions,
-    ) -> Result<ServiceBusMessageBatch, RequestedSizeOutOfRange> {
+    ) -> Result<MessageBatch, RequestedSizeOutOfRange> {
         let inner = self.inner.create_message_batch(options)?;
-        Ok(ServiceBusMessageBatch { inner })
+        Ok(MessageBatch { inner })
     }
 
-    /// Sends a single [`ServiceBusMessage`] to the Queue/Topic.
+    /// Sends a single [`Message`] to the Queue/Topic.
     pub async fn send_message(
         &mut self,
-        message: impl Into<ServiceBusMessage>,
+        message: impl Into<Message>,
     ) -> Result<(), azure_core::Error> {
         let iter = std::iter::once(message.into());
         self.send_messages(iter).await
     }
 
-    /// Sends a set of [`ServiceBusMessage`] to the Queue/Topic.
+    /// Sends a set of [`Message`] to the Queue/Topic.
     pub async fn send_messages<M, I>(
         &mut self,
         messages: M,
@@ -77,24 +77,24 @@ impl ServiceBusSender {
     where
         M: IntoIterator<Item = I>,
         M::IntoIter: ExactSizeIterator + Send,
-        I: Into<ServiceBusMessage>,
+        I: Into<Message>,
     {
         let messages = messages.into_iter().map(|m| m.into());
         self.inner.send(messages).await.map_err(Into::into)
     }
 
-    /// Sends a [`ServiceBusMessageBatch`] to the Queue/Topic.
+    /// Sends a [`MessageBatch`] to the Queue/Topic.
     pub async fn send_message_batch(
         &mut self,
-        batch: ServiceBusMessageBatch,
+        batch: MessageBatch,
     ) -> Result<(), azure_core::Error> {
         self.inner.send_batch(batch.inner).await.map_err(Into::into)
     }
 
-    /// Schedules a single [`ServiceBusMessage`] to appear on the Queue/Topic at a later time.
+    /// Schedules a single [`Message`] to appear on the Queue/Topic at a later time.
     pub async fn schedule_message(
         &mut self,
-        message: impl Into<ServiceBusMessage>,
+        message: impl Into<Message>,
         enqueue_time: OffsetDateTime,
     ) -> Result<i64, azure_core::Error> {
         let messages = std::iter::once(message.into());
@@ -104,7 +104,7 @@ impl ServiceBusSender {
         Ok(seq_nums[0])
     }
 
-    /// Schedules a set of [`ServiceBusMessage`] to appear on the Queue/Topic at a later time.
+    /// Schedules a set of [`Message`] to appear on the Queue/Topic at a later time.
     pub async fn schedule_messages<M, I>(
         &mut self,
         messages: M,
@@ -113,7 +113,7 @@ impl ServiceBusSender {
     where
         M: IntoIterator<Item = I>,
         M::IntoIter: ExactSizeIterator + Send,
-        I: Into<ServiceBusMessage>,
+        I: Into<Message>,
     {
         let iter = messages.into_iter();
         if iter.len() == 0 {
@@ -127,7 +127,7 @@ impl ServiceBusSender {
         self.inner.schedule_messages(messages).await.map_err(Into::into)
     }
 
-    /// Cancels a single scheduled [`ServiceBusMessage`] that was previously scheduled with
+    /// Cancels a single scheduled [`Message`] that was previously scheduled with
     pub async fn cancel_scheduled_message(
         &mut self,
         sequence_number: i64,
@@ -138,7 +138,7 @@ impl ServiceBusSender {
             .await
     }
 
-    /// Cancels a set of scheduled [`ServiceBusMessage`] that were previously scheduled with
+    /// Cancels a set of scheduled [`Message`] that were previously scheduled with
     pub async fn cancel_scheduled_messages<I>(
         &mut self,
         sequence_numbers: I,

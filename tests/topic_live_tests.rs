@@ -35,7 +35,7 @@
 mod macros;
 
 cfg_not_wasm32! {
-    use azservicebus::{ServiceBusMessage, ServiceBusReceiverOptions};
+    use azservicebus::{Message, ReceiverOptions};
 
     mod common;
     use common::setup_dotenv;
@@ -80,7 +80,7 @@ cfg_not_wasm32! {
         let subscription_name = std::env::var("SERVICE_BUS_SUBSCRIPTION")?;
 
         let message_body = b"test message";
-        let message = ServiceBusMessage::new(&message_body[..]);
+        let message = Message::new(&message_body[..]);
         let messages = std::iter::once(message);
         let max_messages = messages.len() as u32;
 
@@ -119,9 +119,9 @@ cfg_not_wasm32! {
 
         let expected = ["test message 1", "test message 2", "test message 3"];
         let messages = vec![
-            ServiceBusMessage::new(expected[0]),
-            ServiceBusMessage::new(expected[1]),
-            ServiceBusMessage::new(expected[2]),
+            Message::new(expected[0]),
+            Message::new(expected[1]),
+            Message::new(expected[2]),
         ];
         let total = messages.len();
 
@@ -163,9 +163,9 @@ cfg_not_wasm32! {
 
         let expected = ["test message 1", "test message 2", "test message 3"];
         let messages = vec![
-            ServiceBusMessage::new(expected[0]),
-            ServiceBusMessage::new(expected[1]),
-            ServiceBusMessage::new(expected[2]),
+            Message::new(expected[0]),
+            Message::new(expected[1]),
+            Message::new(expected[2]),
         ];
         let total = messages.len();
 
@@ -178,7 +178,7 @@ cfg_not_wasm32! {
         )
         .await?;
 
-        let receiver_option = ServiceBusReceiverOptions {
+        let receiver_option = ReceiverOptions {
             prefetch_count: total as u32,
             ..Default::default()
         };
@@ -248,7 +248,7 @@ cfg_not_wasm32! {
 
         // Send 2nd session messages first to ensure that the 1st session is not auto-received
         let messages = expected_for_session_id_2.iter().map(|m| {
-            let mut message = ServiceBusMessage::new(m.as_bytes());
+            let mut message = Message::new(m.as_bytes());
             message.set_session_id(String::from(session_id_2)).unwrap();
             message
         });
@@ -263,7 +263,7 @@ cfg_not_wasm32! {
 
         // Send 1st session messages next
         let messages = expected_for_session_id_1.iter().map(|m| {
-            let mut message = ServiceBusMessage::new(m.as_bytes());
+            let mut message = Message::new(m.as_bytes());
             message.set_session_id(String::from(session_id_1)).unwrap();
             message
         });
@@ -309,7 +309,7 @@ cfg_not_wasm32! {
         let topic_name = std::env::var("SERVICE_BUS_RULE_FILTER_TEST_TOPIC")?;
         let subscription_name = std::env::var("SERVICE_BUS_RULE_FILTER_TEST_SUBSCRIPTION")?;
 
-        let mut client = ServiceBusClient::new_from_connection_string(connection_string, Default::default()).await?;
+        let mut client = Client::new_from_connection_string(connection_string, Default::default()).await?;
         let mut rule_manager = client
             .create_rule_manager(topic_name, subscription_name)
             .await?;

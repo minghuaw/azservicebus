@@ -1,4 +1,4 @@
-//! Defines the [`ServiceBusReceivedMessage`] struct.
+//! Defines the [`ReceivedMessage`] struct.
 
 use std::borrow::Cow;
 use std::time::Duration as StdDuration;
@@ -27,10 +27,10 @@ use crate::{
     constants::{DEFAULT_OFFSET_DATE_TIME, MAX_OFFSET_DATE_TIME},
 };
 
-use super::service_bus_message_state::ServiceBusMessageState;
+use super::service_bus_message_state::MessageState;
 
 #[cfg(docsrs)]
-use crate::{ServiceBusMessage, ServiceBusReceiveMode};
+use crate::{Message, ReceiveMode};
 
 /// The lock token for a received message
 #[derive(Debug, Clone)]
@@ -47,13 +47,13 @@ pub(crate) enum ReceivedMessageLockToken {
     },
 }
 
-/// The [`ServiceBusReceivedMessage`] is used to receive data from Service Bus Queues and
-/// Subscriptions. When sending messages, the [`ServiceBusMessage`] is used.
+/// The [`ReceivedMessage`] is used to receive data from Service Bus Queues and
+/// Subscriptions. When sending messages, the [`Message`] is used.
 ///
 /// The message structure is discussed in detail in the [product
 /// documentation](https://docs.microsoft.com/azure/service-bus-messaging/service-bus-messages-payloads)
 #[derive(Debug)]
-pub struct ServiceBusReceivedMessage {
+pub struct ReceivedMessage {
     /// Indicates whether the user has settled the message as part of their callback.
     /// If they have done so, we will not autocomplete.
     ///
@@ -62,40 +62,40 @@ pub struct ServiceBusReceivedMessage {
 
     /// Gets the raw Amqp message data that was transmitted over the wire.
     /// This can be used to enable scenarios that require reading AMQP header, footer, property, or annotation
-    /// data that is not exposed as top level properties in the [`ServiceBusReceivedMessage`].
+    /// data that is not exposed as top level properties in the [`ReceivedMessage`].
     pub(crate) raw_amqp_message: Message<Body<Value>>,
 
     /// Delivery Info
     pub(crate) lock_token: ReceivedMessageLockToken,
 }
 
-impl AsRef<ServiceBusReceivedMessage> for ServiceBusReceivedMessage {
-    fn as_ref(&self) -> &ServiceBusReceivedMessage {
+impl AsRef<ReceivedMessage> for ReceivedMessage {
+    fn as_ref(&self) -> &ReceivedMessage {
         self
     }
 }
 
-impl From<ServiceBusReceivedMessage> for ReceivedMessageLockToken {
-    fn from(message: ServiceBusReceivedMessage) -> Self {
+impl From<ReceivedMessage> for ReceivedMessageLockToken {
+    fn from(message: ReceivedMessage) -> Self {
         message.lock_token
     }
 }
 
-impl From<&ServiceBusReceivedMessage> for ReceivedMessageLockToken {
-    fn from(message: &ServiceBusReceivedMessage) -> Self {
+impl From<&ReceivedMessage> for ReceivedMessageLockToken {
+    fn from(message: &ReceivedMessage) -> Self {
         message.lock_token.clone()
     }
 }
 
-impl ServiceBusReceivedMessage {
+impl ReceivedMessage {
     /// Gets the raw Amqp message data that was transmitted over the wire. This can be used to
     /// enable scenarios that require reading AMQP header, footer, property, or annotation data that
-    /// is not exposed as top level properties in the [`ServiceBusReceivedMessage`].
+    /// is not exposed as top level properties in the [`ReceivedMessage`].
     pub fn raw_amqp_message(&self) -> &Message<Body<Value>> {
         &self.raw_amqp_message
     }
 
-    /// Consumes the [`ServiceBusReceivedMessage`] and returns the raw Amqp message data that was
+    /// Consumes the [`ReceivedMessage`] and returns the raw Amqp message data that was
     /// transmitted over the wire.
     pub fn into_raw_amqp_message(self) -> Message<Body<Value>> {
         self.raw_amqp_message
@@ -170,7 +170,7 @@ impl ServiceBusReceivedMessage {
     /// Gets the message’s "time to live" value.
     ///
     /// This value is the relative duration after which the message expires, starting from the
-    /// instant the message has been accepted and stored by the broker, as captured in [`ServiceBusReceivedMessage::enqueued_time`].
+    /// instant the message has been accepted and stored by the broker, as captured in [`ReceivedMessage::enqueued_time`].
     /// When not set explicitly, the assumed value is the DefaultTimeToLive
     /// for the respective queue or topic. A message-level time to live value cannot be
     /// longer than the entity's DefaultTimeToLive setting and it is silently adjusted if it does.
@@ -248,7 +248,7 @@ impl ServiceBusReceivedMessage {
     /// Gets the lock token for the current message.
     ///
     /// The lock token is a reference to the lock that is being held by the broker in
-    /// [`ServiceBusReceiveMode::PeekLock`] mode. Locks are used to explicitly settle messages as
+    /// [`ReceiveMode::PeekLock`] mode. Locks are used to explicitly settle messages as
     /// explained in the documentation in [more
     /// detail](https://docs.microsoft.com/azure/service-bus-messaging/message-transfers-locks-settlement).
     /// The token can also be used to pin the lock permanently through the [Deferral
@@ -462,19 +462,19 @@ impl ServiceBusReceivedMessage {
     /// The state of the message can be Active, Deferred, or Scheduled. Deferred messages have
     /// Deferred state, scheduled messages have Scheduled state, all other messages have Active
     /// state.
-    pub fn state(&self) -> ServiceBusMessageState {
+    pub fn state(&self) -> MessageState {
         self.raw_amqp_message
             .message_annotations
             .as_ref()
             .and_then(|m| m.get(&MESSAGE_STATE_NAME as &dyn AnnotationKey))
             .map(|value| match value {
-                Value::Long(val) => ServiceBusMessageState::from(*val),
+                Value::Long(val) => MessageState::from(*val),
                 _ => unreachable!("Expecting a Long"),
             })
             .unwrap_or_default()
     }
 
-    // pub(crate) fn set_state(&mut self, state: ServiceBusMessageState) {
+    // pub(crate) fn set_state(&mut self, state: MessageState) {
     //     let value = state as i64;
     //     self.delivery
     //         .message()
@@ -484,7 +484,7 @@ impl ServiceBusReceivedMessage {
     // }
 }
 
-impl std::fmt::Display for ServiceBusReceivedMessage {
+impl std::fmt::Display for ReceivedMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.message_id() {
             Some(id) => write!(f, "{{MessageId:{}}}", id),

@@ -1,5 +1,5 @@
 use azservicebus::{
-    ServiceBusClient, ServiceBusClientOptions, ServiceBusReceiverOptions, SubQueue,
+    Client, ClientOptions, ReceiverOptions, SubQueue,
 };
 
 #[tokio::main]
@@ -9,9 +9,9 @@ async fn main() -> Result<(), anyhow::Error> {
     let connection_string = std::env::var("SERVICE_BUS_CONNECTION_STRING")?;
     let queue_name = std::env::var("SERVICE_BUS_QUEUE")?;
 
-    let mut client = ServiceBusClient::new_from_connection_string(
+    let mut client = Client::new_from_connection_string(
         connection_string,
-        ServiceBusClientOptions::default(),
+        ClientOptions::default(),
     )
     .await?;
 
@@ -30,7 +30,7 @@ async fn main() -> Result<(), anyhow::Error> {
     receiver.dispose().await?;
 
     // Create a separate deadletter receiver to receive the dead-lettered message
-    let options = ServiceBusReceiverOptions {
+    let options = ReceiverOptions {
         sub_queue: SubQueue::DeadLetter,
         ..Default::default()
     };

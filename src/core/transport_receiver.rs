@@ -5,16 +5,16 @@ use time::OffsetDateTime;
 
 use crate::{
     primitives::{
-        service_bus_peeked_message::ServiceBusPeekedMessage,
-        service_bus_received_message::ServiceBusReceivedMessage,
+        service_bus_peeked_message::PeekedMessage,
+        service_bus_received_message::ReceivedMessage,
     },
     sealed::Sealed,
-    ServiceBusReceiveMode,
+    ReceiveMode,
 };
 
 // Conditional import for docs.rs
 #[cfg(docsrs)]
-use crate::ServiceBusReceiver;
+use crate::Receiver;
 
 /// Trait for session receiver
 pub(crate) trait TransportSessionReceiver: TransportReceiver {
@@ -79,52 +79,52 @@ pub(crate) trait TransportReceiver: Sealed {
     fn prefetch_count(&self) -> u32;
 
     /// Get the receive mode
-    fn receive_mode(&self) -> ServiceBusReceiveMode;
+    fn receive_mode(&self) -> ReceiveMode;
 
-    /// Receives a set of [`ServiceBusReceivedMessage`] from the entity using
-    /// [`ServiceBusReceiveMode`] mode.
+    /// Receives a set of [`ReceivedMessage`] from the entity using
+    /// [`ReceiveMode`] mode.
     ///
     /// This method should poll indefinitely until at least one message is received.
     async fn receive_messages(
         &mut self,
         max_messages: u32,
-    ) -> Result<Vec<ServiceBusReceivedMessage>, Self::ReceiveError>;
+    ) -> Result<Vec<ReceivedMessage>, Self::ReceiveError>;
 
-    /// Receives a set of [`ServiceBusReceivedMessage`] from the entity using
-    /// [`ServiceBusReceiveMode`] mode.
+    /// Receives a set of [`ReceivedMessage`] from the entity using
+    /// [`ReceiveMode`] mode.
     ///
     /// The `max_wait_time` parameter specifies the maximum amount of time the receiver will wait to
     /// receive the specified number of messages. If the `max_wait_time` is not specified, a default
-    /// value that is provided by the `ServiceBusReceiverOptions` will be used.
+    /// value that is provided by the `ReceiverOptions` will be used.
     async fn receive_messages_with_max_wait_time(
         &mut self,
         max_messages: u32,
         max_wait_time: Option<StdDuration>,
-    ) -> Result<Vec<ServiceBusReceivedMessage>, Self::ReceiveError>;
+    ) -> Result<Vec<ReceivedMessage>, Self::ReceiveError>;
 
     /// Closes the connection to the transport consumer instance.
     async fn close(self) -> Result<(), Self::CloseError>;
 
-    /// Completes a [`ServiceBusReceivedMessage`]. This will delete the message from the service.
+    /// Completes a [`ReceivedMessage`]. This will delete the message from the service.
     ///
     /// This operation can only be performed on a message that was received by this receiver
-    /// when [`ServiceBusReceiveMode`] is set to [`ServiceBusReceiveMode::PeekLock`].
+    /// when [`ReceiveMode`] is set to [`ReceiveMode::PeekLock`].
     async fn complete(
         &mut self,
-        message: &ServiceBusReceivedMessage,
+        message: &ReceivedMessage,
         session_id: Option<&str>,
     ) -> Result<(), Self::DispositionError>;
 
     /// Indicates that the receiver wants to defer the processing for the message.
     ///
     /// In order to receive this message again in the future, you will need to save the
-    /// [`ServiceBusReceivedMessage::sequence_number`] and receive it using
+    /// [`ReceivedMessage::sequence_number`] and receive it using
     /// `receive_deferred_message()`. Deferring messages does not impact message's expiration,
     /// meaning that deferred messages can still expire. This operation can only be performed on
     /// messages that were received by this receiver.
     async fn defer(
         &mut self,
-        message: &ServiceBusReceivedMessage,
+        message: &ReceivedMessage,
         properties_to_modify: Option<OrderedMap<String, Value>>,
         session_id: Option<&str>,
     ) -> Result<(), Self::DispositionError>;
@@ -140,7 +140,7 @@ pub(crate) trait TransportReceiver: Sealed {
         &mut self,
         sequence_number: Option<i64>,
         message_count: i32,
-    ) -> Result<Vec<ServiceBusPeekedMessage>, Self::RequestResponseError>;
+    ) -> Result<Vec<PeekedMessage>, Self::RequestResponseError>;
 
     /// Fetches the next batch of active messages for a session without changing the state of the
     /// receiver or the message source.
@@ -149,17 +149,17 @@ pub(crate) trait TransportReceiver: Sealed {
         sequence_number: Option<i64>,
         message_count: i32,
         session_id: &str,
-    ) -> Result<Vec<ServiceBusPeekedMessage>, Self::RequestResponseError>;
+    ) -> Result<Vec<PeekedMessage>, Self::RequestResponseError>;
 
-    /// Abandons a [`ServiceBusReceivedMessage`]. This will make the message available again for
+    /// Abandons a [`ReceivedMessage`]. This will make the message available again for
     /// processing.
     ///
     /// Abandoning a message will increase the delivery count on the message. This operation can
     /// only be performed on messages that were received by this receiver when
-    /// [`ServiceBusReceiveMode`] is set to [`ServiceBusReceiveMode.PeekLock`].
+    /// [`ReceiveMode`] is set to [`ReceiveMode.PeekLock`].
     async fn abandon(
         &mut self,
-        message: &ServiceBusReceivedMessage,
+        message: &ReceivedMessage,
         properties_to_modify: Option<OrderedMap<String, Value>>,
         session_id: Option<&str>,
     ) -> Result<(), Self::DispositionError>;
@@ -167,12 +167,12 @@ pub(crate) trait TransportReceiver: Sealed {
     /// Moves a message to the dead-letter subqueue.
     ///
     /// In order to receive a message from the dead-letter queue, you will need a new
-    /// [`ServiceBusReceiver`] with the corresponding path.
+    /// [`Receiver`] with the corresponding path.
     /// This operation can only be performed on messages that were received by this receiver
-    /// when [`ServiceBusReceiveMode`] is set to [`ServiceBusReceiveMode::PeekLock`].
+    /// when [`ReceiveMode`] is set to [`ReceiveMode::PeekLock`].
     async fn dead_letter(
         &mut self,
-        message: &ServiceBusReceivedMessage,
+        message: &ReceivedMessage,
         dead_letter_reason: Option<String>,
         dead_letter_error_description: Option<String>,
         properties_to_modify: Option<OrderedMap<String, Value>>,
@@ -184,7 +184,7 @@ pub(crate) trait TransportReceiver: Sealed {
         &mut self,
         sequence_numbers: impl Iterator<Item = i64> + Send,
         session_id: Option<&str>,
-    ) -> Result<Vec<ServiceBusReceivedMessage>, Self::RequestResponseError>;
+    ) -> Result<Vec<ReceivedMessage>, Self::RequestResponseError>;
 
     /// Renews the lock on the message. The lock will be renewed based on the setting specified on
     /// the queue.

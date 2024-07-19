@@ -1,8 +1,8 @@
-//! Defines the [`ServiceBusRetryOptions`] struct.
+//! Defines the [`RetryOptions`] struct.
 
 use std::time::Duration;
 
-use super::service_bus_retry_mode::ServiceBusRetryMode;
+use super::service_bus_retry_mode::RetryMode;
 
 const RETRIES_MAX: u32 = 100;
 const DELAY_MIN: Duration = Duration::from_millis(1);
@@ -34,31 +34,31 @@ pub enum OutOfRange<T> {
 /// The set of options that can be specified to influence how
 /// retry attempts are made, and a failure is eligible to be retried.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ServiceBusRetryOptions {
+pub struct RetryOptions {
     /// The approach to use for calculating retry delays.
-    pub mode: ServiceBusRetryMode,
+    pub mode: RetryMode,
 
     /// The maximum number of retry attempts before considering the associated operation to have
-    /// failed. Default to [`ServiceBusRetryOptions::DEFAULT_MAX_RETRIES`]
+    /// failed. Default to [`RetryOptions::DEFAULT_MAX_RETRIES`]
     pub max_retries: u32,
 
     /// The delay or backoff factor to apply between retry attempts. Default to
-    /// [`ServiceBusRetryOptions::DEFAULT_DELAY`]
+    /// [`RetryOptions::DEFAULT_DELAY`]
     pub delay: Duration,
 
     /// The maximum delay to allow between retry attempts. Default to
-    /// [`ServiceBusRetryOptions::DEFAULT_MAX_DELAY`]
+    /// [`RetryOptions::DEFAULT_MAX_DELAY`]
     pub max_delay: Duration,
 
     /// The maximum duration to wait for an operation, per attempt. Default to
-    /// [`ServiceBusRetryOptions::DEFAULT_TRY_TIMEOUT`]
+    /// [`RetryOptions::DEFAULT_TRY_TIMEOUT`]
     pub try_timeout: Duration,
 }
 
-impl Default for ServiceBusRetryOptions {
+impl Default for RetryOptions {
     fn default() -> Self {
         Self {
-            mode: ServiceBusRetryMode::default(),
+            mode: RetryMode::default(),
             max_retries: Self::DEFAULT_MAX_RETRIES,
             delay: Self::DEFAULT_DELAY,
             max_delay: Self::DEFAULT_MAX_DELAY,
@@ -67,26 +67,26 @@ impl Default for ServiceBusRetryOptions {
     }
 }
 
-impl ServiceBusRetryOptions {
-    /// Default value for [`ServiceBusRetryOptions::max_retries`].
+impl RetryOptions {
+    /// Default value for [`RetryOptions::max_retries`].
     pub const DEFAULT_MAX_RETRIES: u32 = 3;
 
-    /// Default value for [`ServiceBusRetryOptions::delay`].
+    /// Default value for [`RetryOptions::delay`].
     pub const DEFAULT_DELAY: Duration = Duration::from_millis(800);
 
-    /// Default value for [`ServiceBusRetryOptions::max_delay`].
+    /// Default value for [`RetryOptions::max_delay`].
     pub const DEFAULT_MAX_DELAY: Duration = Duration::from_secs(60);
 
-    /// Default value for [`ServiceBusRetryOptions::try_timeout`].
+    /// Default value for [`RetryOptions::try_timeout`].
     pub const DEFAULT_TRY_TIMEOUT: Duration = Duration::from_secs(60);
 
     /// The approach to use for calculating retry delays.
-    pub fn mode(&self) -> &ServiceBusRetryMode {
+    pub fn mode(&self) -> &RetryMode {
         &self.mode
     }
 
     /// The approach to use for calculating retry delays.
-    pub fn set_mode(&mut self, mode: ServiceBusRetryMode) {
+    pub fn set_mode(&mut self, mode: RetryMode) {
         self.mode = mode;
     }
 

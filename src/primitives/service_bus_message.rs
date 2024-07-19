@@ -1,4 +1,4 @@
-//! Implements ServiceBusMessage
+//! Implements Message
 
 use std::borrow::Cow;
 
@@ -6,7 +6,7 @@ use std::time::Duration as StdDuration;
 
 use fe2o3_amqp_types::{
     messaging::{
-        annotations::OwnedKey, ApplicationProperties, Body, Data, Message, MessageAnnotations,
+        annotations::OwnedKey, ApplicationProperties, Body, Data, Message as AmqpMessage, MessageAnnotations,
     },
     primitives::Binary,
 };
@@ -24,43 +24,43 @@ use crate::amqp::{
     },
 };
 
-use super::service_bus_received_message::ServiceBusReceivedMessage;
+use super::service_bus_received_message::ReceivedMessage;
 
-/// The [ServiceBusMessage] is used to send data to Service Bus Queues and Topics. When receiving
-/// messages, the [`ServiceBusReceivedMessage`] is used.
+/// The [Message] is used to send data to Service Bus Queues and Topics. When receiving
+/// messages, the [`ReceivedMessage`] is used.
 ///
 /// The message structure is discussed in detail in the [product
 /// documentation](https://docs.microsoft.com/azure/service-bus-messaging/service-bus-messages-payloads)
 #[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq)]
-pub struct ServiceBusMessage {
-    pub(crate) amqp_message: Message<Data>,
+pub struct Message {
+    pub(crate) amqp_message: AmqpMessage<Data>,
 }
 
-impl Default for ServiceBusMessage {
+impl Default for Message {
     fn default() -> Self {
         Self {
-            amqp_message: Message::builder()
+            amqp_message: AmqpMessage::builder()
                 .data(Binary::from(Vec::with_capacity(0)))
                 .build(),
         }
     }
 }
 
-impl<T> From<T> for ServiceBusMessage
+impl<T> From<T> for Message
 where
     T: Into<Vec<u8>>,
 {
     fn from(value: T) -> Self {
         Self {
-            amqp_message: Message::builder().data(Binary::from(value)).build(),
+            amqp_message: AmqpMessage::builder().data(Binary::from(value)).build(),
         }
     }
 }
 
-impl TryFrom<ServiceBusReceivedMessage> for ServiceBusMessage {
-    type Error = ServiceBusReceivedMessage;
+impl TryFrom<ReceivedMessage> for Message {
+    type Error = ReceivedMessage;
 
-    fn try_from(received: ServiceBusReceivedMessage) -> Result<Self, Self::Error> {
+    fn try_from(received: ReceivedMessage) -> Result<Self, Self::Error> {
         use fe2o3_amqp_types::messaging::Header;
 
         // A raw AMQP message may be sent to a queue or topic.
@@ -136,7 +136,7 @@ impl TryFrom<ServiceBusReceivedMessage> for ServiceBusMessage {
         // copy footer
         let footer = src.footer;
 
-        let amqp_message = Message {
+        let amqp_message = AmqpMessage {
             header,
             delivery_annotations,
             message_annotations,
@@ -150,18 +150,18 @@ impl TryFrom<ServiceBusReceivedMessage> for ServiceBusMessage {
     }
 }
 
-impl ServiceBusMessage {
-    /// Creates a new [`ServiceBusMessage`] with a raw AMQP message.
-    pub fn from_raw_amqp_message(amqp_message: Message<Data>) -> Self {
+impl Message {
+    /// Creates a new [`Message`] with a raw AMQP message.
+    pub fn from_raw_amqp_message(amqp_message: AmqpMessage<Data>) -> Self {
         Self { amqp_message }
     }
 
     /// Gets the raw AMQP message
-    pub fn raw_amqp_message(&self) -> &Message<Data> {
+    pub fn raw_amqp_message(&self) -> &AmqpMessage<Data> {
         &self.amqp_message
     }
 
-    /// Creates a new [`ServiceBusMessage`] with the given data as the body.
+    /// Creates a new [`Message`] with the given data as the body.
     pub fn new(data: impl Into<Vec<u8>>) -> Self {
         Self::from(data)
     }
@@ -208,7 +208,7 @@ impl ServiceBusMessage {
     /// setting this value enables assigning related messages to the same internal partition, so
     /// that submission sequence order is correctly recorded. The partition is chosen by a hash
     /// function over this value and cannot be chosen directly. For session-aware entities, the
-    /// [`ServiceBusMessage::set_session_id`] method overrides this value.
+    /// [`Message::set_session_id`] method overrides this value.
     pub fn partition_key(&self) -> Option<&str> {
         self.amqp_message.partition_key()
     }
@@ -263,7 +263,7 @@ impl ServiceBusMessage {
         self.amqp_message.set_session_id(session_id)
     }
 
-    /// Gets session identifier augmenting the [`ServiceBusMessage::reply_to`] address.
+    /// Gets session identifier augmenting the [`Message::reply_to`] address.
     ///
     /// This value augments the ReplyTo information and specifies which SessionId should be set for
     /// the reply when sent to the reply entity. See [Message Routing and
@@ -272,7 +272,7 @@ impl ServiceBusMessage {
         self.amqp_message.reply_to_session_id()
     }
 
-    /// Sets a session identifier augmenting the [`ServiceBusMessage::set_reply_to`] address.
+    /// Sets a session identifier augmenting the [`Message::set_reply_to`] address.
     /// Maximum length is 128 characters.
     pub fn set_reply_to_session_id(
         &mut self,
@@ -402,7 +402,7 @@ impl ServiceBusMessage {
     }
 }
 
-impl std::fmt::Display for ServiceBusMessage {
+impl std::fmt::Display for Message {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.message_id() {
             Some(id) => write!(f, "{{MessageId:{}}}", id),
@@ -415,7 +415,7 @@ impl std::fmt::Display for ServiceBusMessage {
 mod tests {
     use crate::{
         constants::{MAX_MESSAGE_ID_LENGTH, MAX_SESSION_ID_LENGTH},
-        ServiceBusMessage,
+        Message,
     };
 
     #[test]
@@ -423,7 +423,7 @@ mod tests {
         let cases = ["123", "jøbber-nå"];
 
         for case in cases {
-            let mut message = ServiceBusMessage::default();
+            let mut message = Message::default();
             message.set_message_id(case).unwrap();
             assert_eq!(message.to_string(), format!("{{MessageId:{}}}", case));
         }
@@ -431,13 +431,13 @@ mod tests {
 
     #[test]
     fn setting_empty_message_id_returns_error() {
-        let mut message = ServiceBusMessage::new("test message");
+        let mut message = Message::new("test message");
         assert!(message.set_message_id("").is_err());
     }
 
     #[test]
     fn setting_long_message_id_returns_error() {
-        let mut message = ServiceBusMessage::new("test message");
+        let mut message = Message::new("test message");
         let message_id = "a".repeat(MAX_MESSAGE_ID_LENGTH);
         assert!(message.set_message_id(message_id).is_ok());
 
@@ -447,13 +447,13 @@ mod tests {
 
     #[test]
     fn setting_none_session_id_returns_ok() {
-        let mut message = ServiceBusMessage::new("test message");
+        let mut message = Message::new("test message");
         assert!(message.set_session_id(None).is_ok());
     }
 
     #[test]
     fn setting_long_session_id_returns_error() {
-        let mut message = ServiceBusMessage::new("test message");
+        let mut message = Message::new("test message");
         let session_id = "a".repeat(MAX_SESSION_ID_LENGTH);
         assert!(message.set_session_id(Some(session_id)).is_ok());
 
@@ -463,13 +463,13 @@ mod tests {
 
     #[test]
     fn setting_none_reply_to_session_id_returns_ok() {
-        let mut message = ServiceBusMessage::new("test message");
+        let mut message = Message::new("test message");
         assert!(message.set_reply_to_session_id(None).is_ok());
     }
 
     #[test]
     fn setting_long_reply_to_session_id_returns_error() {
-        let mut message = ServiceBusMessage::new("test message");
+        let mut message = Message::new("test message");
         let reply_to_session_id = "a".repeat(MAX_SESSION_ID_LENGTH);
         assert!(message
             .set_reply_to_session_id(Some(reply_to_session_id))
@@ -483,13 +483,13 @@ mod tests {
 
     #[test]
     fn setting_none_partition_key_returns_ok() {
-        let mut message = ServiceBusMessage::new("test message");
+        let mut message = Message::new("test message");
         assert!(message.set_partition_key(None).is_ok());
     }
 
     #[test]
     fn partition_key_must_match_session_id_if_both_are_set() {
-        let mut message = ServiceBusMessage::new("test message");
+        let mut message = Message::new("test message");
         assert!(message.set_session_id(Some("session_id".into())).is_ok());
         assert_eq!(message.session_id(), Some("session_id"));
         assert!(message.partition_key().is_none());
@@ -497,7 +497,7 @@ mod tests {
             .set_partition_key(Some("partition_key".into()))
             .is_err());
 
-        let mut message = ServiceBusMessage::new("test message");
+        let mut message = Message::new("test message");
         assert!(message
             .set_partition_key(Some("partition_key".into()))
             .is_ok());
@@ -510,7 +510,7 @@ mod tests {
     #[test]
     fn set_message_body_to_string() {
         let message_body = "some message";
-        let mut message = ServiceBusMessage::new(message_body);
+        let mut message = Message::new(message_body);
         assert_eq!(message.body(), message_body.as_bytes());
 
         let new_message_body = "some new message";

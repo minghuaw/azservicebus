@@ -1,4 +1,4 @@
-use azservicebus::{ServiceBusClient, ServiceBusClientOptions, ServiceBusMessage};
+use azservicebus::{Client, ClientOptions, Message};
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -9,9 +9,9 @@ async fn main() -> Result<(), anyhow::Error> {
     let queue_name = std::env::var("SERVICE_BUS_SESSION_QUEUE")?;
     let session_id = "session1";
 
-    let mut client = ServiceBusClient::new_from_connection_string(
+    let mut client = Client::new_from_connection_string(
         connection_string,
-        ServiceBusClientOptions::default(),
+        ClientOptions::default(),
     )
     .await?;
 
@@ -19,7 +19,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let mut sender = client
         .create_sender(&queue_name, Default::default())
         .await?;
-    let mut message = ServiceBusMessage::new("Hello World");
+    let mut message = Message::new("Hello World");
     message.set_session_id(String::from(session_id))?;
     sender.send_message(message).await?;
     sender.dispose().await?;

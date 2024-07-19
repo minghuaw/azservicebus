@@ -8,7 +8,7 @@
 mod macros;
 
 cfg_not_wasm32! {
-    use azservicebus::{ServiceBusReceivedMessage, ServiceBusReceiver, ServiceBusSender};
+    use azservicebus::{ReceivedMessage, ServiceBusReceiver, ServiceBusSender};
 
     mod common;
 
@@ -32,7 +32,7 @@ cfg_not_wasm32! {
     async fn receive_and_complete_incoming_messages(
         mut receiver: ServiceBusReceiver,
         total: usize,
-    ) -> Result<Vec<ServiceBusReceivedMessage>, anyhow::Error> {
+    ) -> Result<Vec<ReceivedMessage>, anyhow::Error> {
         let mut total_received = 0;
         let mut received = Vec::new();
         while total_received < total {
@@ -62,14 +62,14 @@ cfg_not_wasm32! {
         // cargo test --test long_tests --features test_e2e -- --ignored send_to_queue_every_minute_for_two_hour --exact --nocapture
         // ```
 
-        use azservicebus::{ServiceBusClient};
+        use azservicebus::{Client};
 
         common::setup_dotenv();
 
         let connection_string = std::env::var("SERVICE_BUS_CONNECTION_STRING").unwrap();
         let queue_name = std::env::var("SERVICE_BUS_QUEUE").unwrap();
 
-        let mut client = ServiceBusClient::new_from_connection_string(
+        let mut client = Client::new_from_connection_string(
             &connection_string,
             Default::default(),
         )

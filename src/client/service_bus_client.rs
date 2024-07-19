@@ -19,28 +19,28 @@ use crate::{
     entity_name_formatter::{self, format_entity_path},
     primitives::{
         service_bus_connection::{build_connection_resource, ServiceBusConnection},
-        service_bus_retry_options::ServiceBusRetryOptions,
+        service_bus_retry_options::RetryOptions,
         service_bus_retry_policy::ServiceBusRetryPolicyExt,
-        service_bus_transport_type::ServiceBusTransportType,
+        service_bus_transport_type::TransportType,
     },
     receiver::service_bus_session_receiver::{
-        ServiceBusSessionReceiver, ServiceBusSessionReceiverOptions,
+        SessionReceiver, SessionReceiverOptions,
     },
-    ServiceBusReceiver, ServiceBusReceiverOptions, ServiceBusRuleManager, ServiceBusSender,
-    ServiceBusSenderOptions,
+    Receiver, ReceiverOptions, RuleManager, Sender,
+    SenderOptions,
 };
 
 use super::error::AcceptNextSessionError;
 
-/// The set of options that can be specified when creating an [`ServiceBusClient`]
+/// The set of options that can be specified when creating an [`Client`]
 /// to configure its behavior.
 #[derive(Debug, Clone, Default)]
-pub struct ServiceBusClientOptions {
+pub struct ClientOptions {
     /// The type of protocol and transport that will be used for communicating with the Service
     /// Bus service.
-    pub transport_type: ServiceBusTransportType,
+    pub transport_type: TransportType,
 
-    /// A property used to set the [`ServiceBusClient`] ID to identify the client. This can be used
+    /// A property used to set the [`Client`] ID to identify the client. This can be used
     /// to correlate logs and exceptions. If `None` or empty, a random unique value will be
     /// used.
     pub identifier: Option<String>,
@@ -58,14 +58,14 @@ pub struct ServiceBusClientOptions {
     /// if so, the amount of time to wait between retry attempts.  These options also control the
     /// amount of time allowed for receiving messages and other interactions with the Service Bus
     /// service.
-    pub retry_options: ServiceBusRetryOptions,
+    pub retry_options: RetryOptions,
 
     /// Gets or sets a flag that indicates whether or not transactions may span multiple
     /// Service Bus entities.
     pub enable_cross_entity_transactions: bool,
 }
 
-/// Type state for [`ServiceBusClient`] indicating that the client is using a custom retry policy.
+/// Type state for [`Client`] indicating that the client is using a custom retry policy.
 #[derive(Debug)]
 pub struct WithCustomRetryPolicy<RP> {
     retry_policy: PhantomData<RP>,
@@ -75,27 +75,27 @@ impl<RP> WithCustomRetryPolicy<RP>
 where
     RP: ServiceBusRetryPolicyExt + Send + Sync + 'static,
 {
-    /// Creates a new instance of the [`ServiceBusClient`] class using the specified
-    /// connection string and [`ServiceBusClientOptions`].
+    /// Creates a new instance of the [`Client`] class using the specified
+    /// connection string and [`ClientOptions`].
     pub async fn new_from_connection_string<'a>(
         self,
         connection_string: impl Into<Cow<'a, str>>,
-        options: ServiceBusClientOptions,
-    ) -> Result<ServiceBusClient<RP>, azure_core::Error> {
+        options: ClientOptions,
+    ) -> Result<Client<RP>, azure_core::Error> {
         let connection_string = connection_string.into();
         let identifier = options.identifier.clone();
         let connection = ServiceBusConnection::new(connection_string, options).await?;
         let identifier = identifier.unwrap_or_else(|| {
             diagnostics::utilities::generate_identifier(connection.fully_qualified_namespace())
         });
-        Ok(ServiceBusClient {
+        Ok(Client {
             identifier,
             connection,
         })
     }
 
-    /// Creates a new instance of the [`ServiceBusClient`] class using the specified
-    /// connection string and [`ServiceBusClientOptions`].
+    /// Creates a new instance of the [`Client`] class using the specified
+    /// connection string and [`ClientOptions`].
     #[deprecated(
         since = "0.14.0",
         note = "Please use `new_from_connection_string` instead"
@@ -103,18 +103,18 @@ where
     pub async fn create_client<'a>(
         self,
         connection_string: impl Into<Cow<'a, str>>,
-        options: ServiceBusClientOptions,
-    ) -> Result<ServiceBusClient<RP>, azure_core::Error> {
+        options: ClientOptions,
+    ) -> Result<Client<RP>, azure_core::Error> {
         self.new_from_connection_string(connection_string, options).await
     }
 
-    /// Creates a new instance of the [`ServiceBusClient`] class using a named key credential.
+    /// Creates a new instance of the [`Client`] class using a named key credential.
     pub async fn new_from_named_key_credential(
         self,
         fully_qualified_namespace: impl Into<String>,
         credential: AzureNamedKeyCredential,
-        options: ServiceBusClientOptions,
-    ) -> Result<ServiceBusClient<RP>, azure_core::Error> {
+        options: ClientOptions,
+    ) -> Result<Client<RP>, azure_core::Error> {
         let fully_qualified_namespace = fully_qualified_namespace.into();
         let signuture_resource = build_connection_resource(
             &options.transport_type,
@@ -126,7 +126,7 @@ where
         self.new_from_credential(fully_qualified_namespace, shared_access_credential, options).await
     }
 
-    /// Creates a new instance of the [`ServiceBusClient`] class using a named key credential.
+    /// Creates a new instance of the [`Client`] class using a named key credential.
     #[deprecated(
         since = "0.14.0",
         note = "Please use `new_from_named_key_credential` instead"
@@ -135,23 +135,23 @@ where
         self,
         fully_qualified_namespace: impl Into<String>,
         credential: AzureNamedKeyCredential,
-        options: ServiceBusClientOptions,
-    ) -> Result<ServiceBusClient<RP>, azure_core::Error> {
+        options: ClientOptions,
+    ) -> Result<Client<RP>, azure_core::Error> {
         self.new_from_named_key_credential(fully_qualified_namespace, credential, options).await
     }
 
-    /// Creates a new instance of the [`ServiceBusClient`] class using a SAS token credential.
+    /// Creates a new instance of the [`Client`] class using a SAS token credential.
     pub async fn new_from_sas_credential(
         self,
         fully_qualified_namespace: impl Into<String>,
         credential: AzureSasCredential,
-        options: ServiceBusClientOptions,
-    ) -> Result<ServiceBusClient<RP>, azure_core::Error> {
+        options: ClientOptions,
+    ) -> Result<Client<RP>, azure_core::Error> {
         let shared_access_credential = SharedAccessCredential::try_from_sas_credential(credential)?;
         self.new_from_credential(fully_qualified_namespace, shared_access_credential, options).await
     }
 
-    /// Creates a new instance of the [`ServiceBusClient`] class using a SAS token credential.
+    /// Creates a new instance of the [`Client`] class using a SAS token credential.
     #[deprecated(
         since = "0.14.0",
         note = "Please use `new_from_sas_credential` instead"
@@ -160,23 +160,23 @@ where
         self,
         fully_qualified_namespace: impl Into<String>,
         credential: AzureSasCredential,
-        options: ServiceBusClientOptions,
-    ) -> Result<ServiceBusClient<RP>, azure_core::Error> {
+        options: ClientOptions,
+    ) -> Result<Client<RP>, azure_core::Error> {
         self.new_from_sas_credential(fully_qualified_namespace, credential, options).await
     }
 
-    /// Creates a new instance of the [`ServiceBusClient`] class using a token credential.
+    /// Creates a new instance of the [`Client`] class using a token credential.
     pub async fn new_from_token_credential(
         self,
         fully_qualified_namespace: impl Into<String>,
         credential: impl TokenCredential + 'static,
-        options: ServiceBusClientOptions,
-    ) -> Result<ServiceBusClient<RP>, azure_core::Error> {
+        options: ClientOptions,
+    ) -> Result<Client<RP>, azure_core::Error> {
         let credential = ServiceBusTokenCredential::new(credential);
         self.new_from_credential(fully_qualified_namespace, credential, options).await
     }
 
-    /// Creates a new instance of the [`ServiceBusClient`] class using a token credential.
+    /// Creates a new instance of the [`Client`] class using a token credential.
     #[deprecated(
         since = "0.14.0",
         note = "Please use `new_from_token_credential` instead"
@@ -185,19 +185,19 @@ where
         self,
         fully_qualified_namespace: impl Into<String>,
         credential: impl TokenCredential + 'static,
-        options: ServiceBusClientOptions,
-    ) -> Result<ServiceBusClient<RP>, azure_core::Error> {
+        options: ClientOptions,
+    ) -> Result<Client<RP>, azure_core::Error> {
         self.new_from_token_credential(fully_qualified_namespace, credential, options).await
     }
 
-    /// Creates a new instance of the [`ServiceBusClient`] using the specified
+    /// Creates a new instance of the [`Client`] using the specified
     /// namespace and credential
     pub async fn new_from_credential(
         self,
         fully_qualified_namespace: impl Into<String>,
         credential: impl Into<ServiceBusTokenCredential>,
-        options: ServiceBusClientOptions,
-    ) -> Result<ServiceBusClient<RP>, azure_core::Error> {
+        options: ClientOptions,
+    ) -> Result<Client<RP>, azure_core::Error> {
         let fully_qualified_namespace = fully_qualified_namespace.into();
         let identifier = options.identifier.clone().unwrap_or_else(|| {
             diagnostics::utilities::generate_identifier(&fully_qualified_namespace)
@@ -209,51 +209,51 @@ where
             options,
         )
         .await?;
-        Ok(ServiceBusClient {
+        Ok(Client {
             identifier,
             connection,
         })
     }
 }
 
-/// The [`ServiceBusClient`] is the top-level client through which all Service Bus entities can be
-/// interacted with. Any lower level types retrieved from here, such as [`ServiceBusSender`] and
-/// [`ServiceBusReceiver`] will share the same AMQP connection. Disposing the [`ServiceBusClient`]
+/// The [`Client`] is the top-level client through which all Service Bus entities can be
+/// interacted with. Any lower level types retrieved from here, such as [`Sender`] and
+/// [`Receiver`] will share the same AMQP connection. Disposing the [`Client`]
 /// will cause the AMQP connection to close.
 ///
 /// # WebAssembly support
 ///
-/// Creating a [`ServiceBusClient`] is supported for `wasm32-unknown-unknown` targets; however, the
+/// Creating a [`Client`] is supported for `wasm32-unknown-unknown` targets; however, the
 /// user must ensure that the client is created within the scope of a `tokio::task::LocalSet`.
 #[derive(Debug)]
-pub struct ServiceBusClient<RP> {
-    /// The name used to identify this [`ServiceBusClient`]
+pub struct Client<RP> {
+    /// The name used to identify this [`Client`]
     identifier: String,
 
     /// The connection that is used for the client.
     connection: ServiceBusConnection<AmqpClient<RP>>,
 }
 
-impl ServiceBusClient<BasicRetryPolicy> {
+impl Client<BasicRetryPolicy> {
     /// Use a custom retry policy for the client.
     ///
     /// # Example
     ///
     /// ```rust,ignore
     /// use azservicebus::{
-    ///     ServiceBusClient, ServiceBusClientOptions, ServiceBusRetryPolicy,
+    ///     Client, ClientOptions, RetryPolicy,
     /// };
     ///
     /// struct MyRetryPolicy;
     ///
-    /// impl ServiceBusRetryPolicy for MyRetryPolicy {
+    /// impl RetryPolicy for MyRetryPolicy {
     ///     // ...
     /// }
     ///
     /// #[tokio::main]
     /// async fn main() {
-    ///     let mut client = ServiceBusClient::with_custom_retry_policy::<MyRetryPolicy>()
-    ///         .new_from_connection_string("<NAMESPACE-CONNECTION-STRING>", ServiceBusClientOptions::default())
+    ///     let mut client = Client::with_custom_retry_policy::<MyRetryPolicy>()
+    ///         .new_from_connection_string("<NAMESPACE-CONNECTION-STRING>", ClientOptions::default())
     ///         .await
     ///         .unwrap();
     /// }
@@ -264,21 +264,21 @@ impl ServiceBusClient<BasicRetryPolicy> {
         }
     }
 
-    /// Creates a new instance of the [`ServiceBusClient`] class using the specified connection
-    /// string and [`ServiceBusClientOptions`].
+    /// Creates a new instance of the [`Client`] class using the specified connection
+    /// string and [`ClientOptions`].
     ///
     /// # Example
     ///
     /// ```rust,no_run
     /// use azservicebus::{
-    ///     ServiceBusClient, ServiceBusClientOptions,
+    ///     Client, ClientOptions,
     /// };
     ///
     /// #[tokio::main]
     /// async fn main() {
-    ///     let mut client = ServiceBusClient::new_from_connection_string(
+    ///     let mut client = Client::new_from_connection_string(
     ///             "<NAMESPACE-CONNECTION-STRING>",
-    ///             ServiceBusClientOptions::default()
+    ///             ClientOptions::default()
     ///         )
     ///         .await
     ///         .unwrap();
@@ -287,40 +287,40 @@ impl ServiceBusClient<BasicRetryPolicy> {
     /// ```
     pub async fn new_from_connection_string<'a>(
         connection_string: impl Into<Cow<'a, str>>,
-        options: ServiceBusClientOptions,
+        options: ClientOptions,
     ) -> Result<Self, azure_core::Error> {
         Self::with_custom_retry_policy()
             .new_from_connection_string(connection_string, options)
             .await
     }
 
-    /// Creates a new instance of the [`ServiceBusClient`] class using the specified
-    /// connection string and [`ServiceBusClientOptions`].
+    /// Creates a new instance of the [`Client`] class using the specified
+    /// connection string and [`ClientOptions`].
     #[deprecated(
         since = "0.14.0",
         note = "Please use `new_from_connection_string` instead"
     )]
     pub async fn new<'a>(
         connection_string: impl Into<Cow<'a, str>>,
-        options: ServiceBusClientOptions,
+        options: ClientOptions,
     ) -> Result<Self, azure_core::Error> {
         Self::with_custom_retry_policy()
             .new_from_connection_string(connection_string, options)
             .await
     }
 
-    /// Creates a new instance of the [`ServiceBusClient`] class using a named key credential.
+    /// Creates a new instance of the [`Client`] class using a named key credential.
     pub async fn new_from_named_key_credential(
         fully_qualified_namespace: impl Into<String>,
         credential: AzureNamedKeyCredential,
-        options: ServiceBusClientOptions,
+        options: ClientOptions,
     ) -> Result<Self, azure_core::Error> {
         Self::with_custom_retry_policy()
             .new_from_named_key_credential(fully_qualified_namespace, credential, options)
             .await
     }
 
-    /// Creates a new instance of the [`ServiceBusClient`] class using a named key credential.
+    /// Creates a new instance of the [`Client`] class using a named key credential.
     #[deprecated(
         since = "0.14.0",
         note = "Please use `new_from_named_key_credential` instead"
@@ -328,23 +328,23 @@ impl ServiceBusClient<BasicRetryPolicy> {
     pub async fn new_with_named_key_credential(
         fully_qualified_namespace: impl Into<String>,
         credential: AzureNamedKeyCredential,
-        options: ServiceBusClientOptions,
+        options: ClientOptions,
     ) -> Result<Self, azure_core::Error> {
         Self::new_from_named_key_credential(fully_qualified_namespace, credential, options).await
     }
 
-    /// Creates a new instance of the [`ServiceBusClient`] class using a SAS token credential.
+    /// Creates a new instance of the [`Client`] class using a SAS token credential.
     pub async fn new_from_sas_credential(
         fully_qualified_namespace: impl Into<String>,
         credential: AzureSasCredential,
-        options: ServiceBusClientOptions,
+        options: ClientOptions,
     ) -> Result<Self, azure_core::Error> {
         Self::with_custom_retry_policy()
             .new_from_sas_credential(fully_qualified_namespace, credential, options)
             .await
     }
 
-    /// Creates a new instance of the [`ServiceBusClient`] class using a SAS token credential.
+    /// Creates a new instance of the [`Client`] class using a SAS token credential.
     #[deprecated(
         since = "0.14.0",
         note = "Please use `new_from_sas_credential` instead"
@@ -352,23 +352,23 @@ impl ServiceBusClient<BasicRetryPolicy> {
     pub async fn new_with_sas_credential(
         fully_qualified_namespace: impl Into<String>,
         credential: AzureSasCredential,
-        options: ServiceBusClientOptions,
+        options: ClientOptions,
     ) -> Result<Self, azure_core::Error> {
         Self::new_from_sas_credential(fully_qualified_namespace, credential, options).await
     }
 
-    /// Creates a new instance of the [`ServiceBusClient`] class using a token credential.
+    /// Creates a new instance of the [`Client`] class using a token credential.
     pub async fn new_from_token_credential(
         fully_qualified_namespace: impl Into<String>,
         credential: impl TokenCredential + 'static,
-        options: ServiceBusClientOptions,
+        options: ClientOptions,
     ) -> Result<Self, azure_core::Error> {
         Self::with_custom_retry_policy()
             .new_from_token_credential(fully_qualified_namespace, credential, options)
             .await
     }
 
-    /// Creates a new instance of the [`ServiceBusClient`] class using a token credential.
+    /// Creates a new instance of the [`Client`] class using a token credential.
     #[deprecated(
         since = "0.14.0",
         note = "Please use `new_from_token_credential` instead"
@@ -376,17 +376,17 @@ impl ServiceBusClient<BasicRetryPolicy> {
     pub async fn new_with_token_credential(
         fully_qualified_namespace: impl Into<String>,
         credential: impl TokenCredential + 'static,
-        options: ServiceBusClientOptions,
+        options: ClientOptions,
     ) -> Result<Self, azure_core::Error> {
         Self::new_from_token_credential(fully_qualified_namespace, credential, options).await
     }
 
-    /// Creates a new instance of the [`ServiceBusClient`] using the specified
+    /// Creates a new instance of the [`Client`] using the specified
     /// namespace and credential.
     pub async fn new_from_credential(
         fully_qualified_namespace: impl Into<String>,
         credential: impl Into<ServiceBusTokenCredential>,
-        options: ServiceBusClientOptions,
+        options: ClientOptions,
     ) -> Result<Self, azure_core::Error> {
         Self::with_custom_retry_policy()
             .new_from_credential(fully_qualified_namespace, credential, options)
@@ -394,7 +394,7 @@ impl ServiceBusClient<BasicRetryPolicy> {
     }
 }
 
-impl<RP> ServiceBusClient<RP>
+impl<RP> Client<RP>
 where
     RP: ServiceBusRetryPolicyExt + 'static,
 {
@@ -404,12 +404,12 @@ where
         self.connection.fully_qualified_namespace()
     }
 
-    /// The name used to identify this [`ServiceBusClient`].
+    /// The name used to identify this [`Client`].
     pub fn identifier(&self) -> &str {
         &self.identifier
     }
 
-    /// Indicates whether or not this [`ServiceBusClient`] has been closed.
+    /// Indicates whether or not this [`Client`] has been closed.
     pub fn is_closed(&self) -> bool {
         self.connection.is_closed()
     }
@@ -419,11 +419,11 @@ where
 /*                                   Dispose                                  */
 /* -------------------------------------------------------------------------- */
 
-impl<RP> ServiceBusClient<RP>
+impl<RP> Client<RP>
 where
     RP: ServiceBusRetryPolicyExt + 'static,
 {
-    /// Performs the task needed to clean up resources used by the [`ServiceBusClient`],
+    /// Performs the task needed to clean up resources used by the [`Client`],
     /// including ensuring that the client itself has been closed.
     pub async fn dispose(self) -> Result<(), azure_core::Error> {
         self.connection.dispose().await?;
@@ -435,11 +435,11 @@ where
 /*                                Create Sender                               */
 /* -------------------------------------------------------------------------- */
 
-impl<RP> ServiceBusClient<RP>
+impl<RP> Client<RP>
 where
     RP: ServiceBusRetryPolicyExt + 'static,
 {
-    /// Creates a new [`ServiceBusSender`] which can be used to send messages to a specific queue or
+    /// Creates a new [`Sender`] which can be used to send messages to a specific queue or
     /// topic.
     ///
     /// # WebAssembly support
@@ -449,8 +449,8 @@ where
     pub async fn create_sender(
         &mut self,
         queue_or_topic_name: impl Into<String>,
-        options: ServiceBusSenderOptions,
-    ) -> Result<ServiceBusSender, azure_core::Error> {
+        options: SenderOptions,
+    ) -> Result<Sender, azure_core::Error> {
         let entity_path = queue_or_topic_name.into();
         let identifier = options
             .identifier
@@ -462,7 +462,7 @@ where
             .create_transport_sender(entity_path, identifier, retry_options)
             .await?;
 
-        Ok(ServiceBusSender { inner })
+        Ok(Sender { inner })
     }
 }
 
@@ -470,16 +470,16 @@ where
 /*                               Create Receiver                              */
 /* -------------------------------------------------------------------------- */
 
-impl<RP> ServiceBusClient<RP>
+impl<RP> Client<RP>
 where
     RP: ServiceBusRetryPolicyExt + 'static,
 {
     /// The transport type used by the client.
-    pub fn transport_type(&self) -> ServiceBusTransportType {
+    pub fn transport_type(&self) -> TransportType {
         self.connection.transport_type()
     }
 
-    /// Creates a new [`ServiceBusReceiver`] which can be used to receive messages from a specific
+    /// Creates a new [`Receiver`] which can be used to receive messages from a specific
     /// queue.
     ///
     /// # WebAssembly support
@@ -489,14 +489,14 @@ where
     pub async fn create_receiver_for_queue(
         &mut self,
         queue_name: impl Into<String>,
-        options: ServiceBusReceiverOptions,
-    ) -> Result<ServiceBusReceiver, azure_core::Error> {
+        options: ReceiverOptions,
+    ) -> Result<Receiver, azure_core::Error> {
         let entity_path = queue_name.into();
         self.create_receiver(entity_path, options).await
             .map_err(Into::into)
     }
 
-    /// Creates a new [`ServiceBusReceiver`] which can be used to receive messages from a specific
+    /// Creates a new [`Receiver`] which can be used to receive messages from a specific
     /// subscription.
     ///
     /// # WebAssembly support
@@ -507,8 +507,8 @@ where
         &mut self,
         topic_name: impl AsRef<str>,
         subscription_name: impl AsRef<str>,
-        options: ServiceBusReceiverOptions,
-    ) -> Result<ServiceBusReceiver, azure_core::Error> {
+        options: ReceiverOptions,
+    ) -> Result<Receiver, azure_core::Error> {
         let entity_path = entity_name_formatter::format_subscription_path(
             topic_name.as_ref(),
             subscription_name.as_ref(),
@@ -521,8 +521,8 @@ where
     async fn create_receiver(
         &mut self,
         entity_path: String,
-        options: ServiceBusReceiverOptions,
-    ) -> Result<ServiceBusReceiver, OpenReceiverError> {
+        options: ReceiverOptions,
+    ) -> Result<Receiver, OpenReceiverError> {
         let identifier = options
             .identifier
             .filter(|id| !id.is_empty())
@@ -542,15 +542,15 @@ where
                 prefetch_count,
             )
             .await?;
-        Ok(ServiceBusReceiver { inner })
+        Ok(Receiver { inner })
     }
 
-    /// Creates a [`ServiceBusSessionReceiver`] instance that can be used for receiving
+    /// Creates a [`SessionReceiver`] instance that can be used for receiving
     /// and settling messages from a session-enabled queue by accepting the next unlocked session that contains Active messages. If there
-    /// are no unlocked sessions with Active messages, then the call will timeout after the configured [`ServiceBusRetryOptions::try_timeout`] value and returns
+    /// are no unlocked sessions with Active messages, then the call will timeout after the configured [`RetryOptions::try_timeout`] value and returns
     /// an error.
     ///
-    /// [`ServiceBusReceiverOptions::receive_mode`] can be specified to configure how messages are received.
+    /// [`ReceiverOptions::receive_mode`] can be specified to configure how messages are received.
     ///
     /// # WebAssembly support
     ///
@@ -560,19 +560,19 @@ where
         &mut self,
         queue_name: impl Into<String>,
         session_id: impl Into<String>,
-        options: ServiceBusSessionReceiverOptions,
-    ) -> Result<ServiceBusSessionReceiver, azure_core::Error> {
+        options: SessionReceiverOptions,
+    ) -> Result<SessionReceiver, azure_core::Error> {
         let entity_path = queue_name.into();
         let session_id = session_id.into();
         self.accept_session(entity_path, session_id, options).await.map_err(Into::into)
     }
 
-    /// Creates a [`ServiceBusSessionReceiver`] instance that can be used for receiving
+    /// Creates a [`SessionReceiver`] instance that can be used for receiving
     /// and settling messages from a session-enabled subscription by accepting the next unlocked session that contains Active messages. If there
-    /// are no unlocked sessions with Active messages, then the call will timeout after the configured [`ServiceBusRetryOptions::try_timeout`] value and returns
+    /// are no unlocked sessions with Active messages, then the call will timeout after the configured [`RetryOptions::try_timeout`] value and returns
     /// an error.
     ///
-    /// [`ServiceBusReceiverOptions::receive_mode`] can be specified to configure how messages are received.
+    /// [`ReceiverOptions::receive_mode`] can be specified to configure how messages are received.
     ///
     /// # WebAssembly support
     ///
@@ -583,8 +583,8 @@ where
         topic_name: impl AsRef<str>,
         subscription_name: impl AsRef<str>,
         session_id: impl Into<String>,
-        options: ServiceBusSessionReceiverOptions,
-    ) -> Result<ServiceBusSessionReceiver, azure_core::Error> {
+        options: SessionReceiverOptions,
+    ) -> Result<SessionReceiver, azure_core::Error> {
         let entity_path = entity_name_formatter::format_subscription_path(
             topic_name.as_ref(),
             subscription_name.as_ref(),
@@ -597,8 +597,8 @@ where
         &mut self,
         entity_path: String,
         session_id: String,
-        options: ServiceBusSessionReceiverOptions,
-    ) -> Result<ServiceBusSessionReceiver, OpenReceiverError> {
+        options: SessionReceiverOptions,
+    ) -> Result<SessionReceiver, OpenReceiverError> {
         let identifier = options
             .identifier
             .unwrap_or_else(|| diagnostics::utilities::generate_identifier(&entity_path));
@@ -618,15 +618,15 @@ where
             )
             .await?;
 
-        Ok(ServiceBusSessionReceiver { inner, session_id })
+        Ok(SessionReceiver { inner, session_id })
     }
 }
 
-impl<RP> ServiceBusClient<RP>
+impl<RP> Client<RP>
 where
     RP: ServiceBusRetryPolicyExt + 'static,
 {
-    /// Creates a [`ServiceBusSessionReceiver`] instance that can be used for receiving and settling
+    /// Creates a [`SessionReceiver`] instance that can be used for receiving and settling
     /// messages from a session-enabled queue by accepting the next unlocked session that contains
     /// Active messages.
     ///
@@ -637,13 +637,13 @@ where
     pub async fn accept_next_session_for_queue(
         &mut self,
         queue_name: impl Into<String>,
-        options: ServiceBusSessionReceiverOptions,
-    ) -> Result<ServiceBusSessionReceiver, azure_core::Error> {
+        options: SessionReceiverOptions,
+    ) -> Result<SessionReceiver, azure_core::Error> {
         let entity_path = queue_name.into();
         self.accept_next_session(entity_path, options).await.map_err(Into::into)
     }
 
-    /// Creates a [`ServiceBusSessionReceiver`] instance that can be used for receiving and settling
+    /// Creates a [`SessionReceiver`] instance that can be used for receiving and settling
     /// messages from a session-enabled subscription by accepting the next unlocked session that
     /// contains Active messages.
     ///
@@ -655,8 +655,8 @@ where
         &mut self,
         topic_name: impl AsRef<str>,
         subscription_name: impl AsRef<str>,
-        options: ServiceBusSessionReceiverOptions,
-    ) -> Result<ServiceBusSessionReceiver, azure_core::Error> {
+        options: SessionReceiverOptions,
+    ) -> Result<SessionReceiver, azure_core::Error> {
         let entity_path = entity_name_formatter::format_subscription_path(
             topic_name.as_ref(),
             subscription_name.as_ref(),
@@ -667,8 +667,8 @@ where
     async fn accept_next_session(
         &mut self,
         entity_path: String,
-        options: ServiceBusSessionReceiverOptions,
-    ) -> Result<ServiceBusSessionReceiver, AcceptNextSessionError> {
+        options: SessionReceiverOptions,
+    ) -> Result<SessionReceiver, AcceptNextSessionError> {
         let identifier = options
             .identifier
             .unwrap_or_else(|| diagnostics::utilities::generate_identifier(&entity_path));
@@ -693,7 +693,7 @@ where
             .ok_or(AcceptNextSessionError::SessionIdNotSet)?
             .to_string();
 
-        Ok(ServiceBusSessionReceiver { inner, session_id })
+        Ok(SessionReceiver { inner, session_id })
     }
 }
 
@@ -701,11 +701,11 @@ where
 /*                             Create RuleManager                             */
 /* -------------------------------------------------------------------------- */
 
-impl<RP> ServiceBusClient<RP>
+impl<RP> Client<RP>
 where
     RP: ServiceBusRetryPolicyExt + 'static,
 {
-    /// Creates a [`ServiceBusRuleManager`] instance that can be used for managing rules on a
+    /// Creates a [`RuleManager`] instance that can be used for managing rules on a
     /// subscription.
     ///
     /// # WebAssembly support
@@ -716,7 +716,7 @@ where
         &mut self,
         topic_name: impl AsRef<str>,
         subscription_name: impl AsRef<str>,
-    ) -> Result<ServiceBusRuleManager, azure_core::Error> {
+    ) -> Result<RuleManager, azure_core::Error> {
         let subscription_path = entity_name_formatter::format_subscription_path(
             topic_name.as_ref(),
             subscription_name.as_ref(),
@@ -729,6 +729,6 @@ where
             .create_transport_rule_manager(subscription_path, identifier, retry_options)
             .await?;
 
-        Ok(ServiceBusRuleManager { inner })
+        Ok(RuleManager { inner })
     }
 }
