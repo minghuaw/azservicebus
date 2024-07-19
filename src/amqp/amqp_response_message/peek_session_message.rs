@@ -57,9 +57,7 @@ impl Response for PeekSessionMessageResponse {
             })?
             .collect();
 
-        Ok(Self {
-            messages,
-        })
+        Ok(Self { messages })
     }
 
     fn from_message(

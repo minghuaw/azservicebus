@@ -1,10 +1,6 @@
 //! Error types for the service bus primitives.
 
-use fe2o3_amqp::{
-    connection::OpenError,
-    link::{ReceiverAttachError, SenderAttachError},
-    session::BeginError,
-};
+use fe2o3_amqp::{connection::OpenError, session::BeginError};
 use fe2o3_amqp_management::error::AttachError;
 use timer_kit::error::Elapsed;
 
@@ -89,14 +85,6 @@ pub(crate) enum Error {
     #[error(transparent)]
     Begin(#[from] BeginError),
 
-    /// Error attaching the sender
-    #[error(transparent)]
-    SenderAttach(#[from] SenderAttachError),
-
-    /// Error attaching the receiver
-    #[error(transparent)]
-    ReceiverAttach(#[from] ReceiverAttachError),
-
     #[error(transparent)]
     ManagementLinkAttach(#[from] AttachError),
 
@@ -107,6 +95,10 @@ pub(crate) enum Error {
     /// Client is disposed
     #[error("Client is disposed")]
     ClientDisposed(#[from] ClientDisposedError),
+
+    #[cfg(feature = "transaction")]
+    #[error(transparent)]
+    ControllerAttach(fe2o3_amqp::link::SenderAttachError),
 }
 
 impl From<Error> for azure_core::Error {
@@ -120,11 +112,11 @@ impl From<Error> for azure_core::Error {
             Error::WebSocket(error) => error.into_azure_core_error(),
             Error::Elapsed(error) => error.into_azure_core_error(),
             Error::Begin(error) => error.into_azure_core_error(),
-            Error::SenderAttach(error) => error.into_azure_core_error(),
-            Error::ReceiverAttach(error) => error.into_azure_core_error(),
             Error::Dispose(error) => error.into(),
             Error::ClientDisposed(error) => error.into(),
             Error::ManagementLinkAttach(error) => error.into_azure_core_error(),
+            #[cfg(feature = "transaction")]
+            Error::ControllerAttach(error) => error.into_azure_core_error(),
         }
     }
 }
@@ -140,6 +132,8 @@ impl From<AmqpClientError> for Error {
             AmqpClientError::Dispose(err) => Self::Dispose(err),
             AmqpClientError::ClientDisposed(err) => Self::ClientDisposed(err),
             AmqpClientError::ManagementLinkAttach(err) => Self::ManagementLinkAttach(err),
+            #[cfg(feature = "transaction")]
+            AmqpClientError::ControllerAttach(err) => Self::ControllerAttach(err),
         }
     }
 }

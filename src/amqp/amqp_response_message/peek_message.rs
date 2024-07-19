@@ -8,7 +8,7 @@ use serde_amqp::Value;
 use crate::amqp::management_constants::properties::{MESSAGE, MESSAGES};
 use crate::primitives::service_bus_peeked_message::ServiceBusPeekedMessage;
 
-use super::{HTTP_STATUS_CODE_OK, HTTP_STATUS_CODE_NO_CONTENT};
+use super::{HTTP_STATUS_CODE_NO_CONTENT, HTTP_STATUS_CODE_OK};
 
 pub(super) type EncodedMessage = Binary;
 pub(super) type EncodedMessages = Vec<OrderedMap<String, EncodedMessage>>;

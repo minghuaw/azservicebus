@@ -49,7 +49,7 @@ pub(crate) trait TransportSender: Sealed {
     /// in a batch, use [`TransportSender::send_batch`] instead.
     async fn send(
         &mut self,
-        messages: impl Iterator<Item = ServiceBusMessage> + ExactSizeIterator + Send,
+        messages: impl ExactSizeIterator<Item = ServiceBusMessage> + Send,
     ) -> Result<(), Self::SendError>;
 
     /// Sends a [`Self::MessageBatch`] to the associated Queue/Topic.

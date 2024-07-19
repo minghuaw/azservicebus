@@ -1,5 +1,5 @@
 use azure_core::auth::AccessToken;
-use std::sync::Arc;
+use std::{fmt::Display, sync::Arc};
 
 use crate::{
     authorization::service_bus_token_credential::ServiceBusTokenCredential,
@@ -30,11 +30,11 @@ impl TokenType {
     }
 }
 
-impl ToString for TokenType {
-    fn to_string(&self) -> String {
+impl Display for TokenType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TokenType::SharedAccessToken { .. } => SAS_TOKEN_TYPE.to_string(),
-            TokenType::JsonWebToken { .. } => JSON_WEB_TOKEN_TYPE.to_string(),
+            TokenType::SharedAccessToken { .. } => write!(f, "{}", SAS_TOKEN_TYPE),
+            TokenType::JsonWebToken { .. } => write!(f, "{}", JSON_WEB_TOKEN_TYPE),
         }
     }
 }
