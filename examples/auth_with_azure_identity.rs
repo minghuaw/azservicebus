@@ -10,12 +10,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let queue_name = std::env::var("SERVICE_BUS_QUEUE")?;
 
     let credential = DefaultAzureCredential::create(TokenCredentialOptions::default()).unwrap();
-    let mut client = Client::new_from_credential(
-        namespace,
-        credential,
-        ClientOptions::default(),
-    )
-    .await?;
+    let mut client =
+        Client::new_from_credential(namespace, credential, ClientOptions::default()).await?;
 
     // Create a sender for auth purpose only
     let sender = client

@@ -5,8 +5,7 @@ use time::OffsetDateTime;
 
 use crate::{
     primitives::{
-        service_bus_peeked_message::PeekedMessage,
-        service_bus_received_message::ReceivedMessage,
+        service_bus_peeked_message::PeekedMessage, service_bus_received_message::ReceivedMessage,
     },
     sealed::Sealed,
     ReceiveMode,

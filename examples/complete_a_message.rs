@@ -9,11 +9,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let connection_string = std::env::var("SERVICE_BUS_CONNECTION_STRING")?;
     let queue_name = std::env::var("SERVICE_BUS_QUEUE")?;
 
-    let mut client = Client::new_from_connection_string(
-        connection_string,
-        ClientOptions::default(),
-    )
-    .await?;
+    let mut client =
+        Client::new_from_connection_string(connection_string, ClientOptions::default()).await?;
 
     // Create a sender and send a message
     let mut sender = client

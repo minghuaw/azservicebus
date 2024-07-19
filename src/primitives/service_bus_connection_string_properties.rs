@@ -469,8 +469,8 @@ mod tests {
         ]
     }
 
-    fn to_connection_string_validates_properties_cases(
-    ) -> Vec<ConnectionStringProperties<'static>> {
+    fn to_connection_string_validates_properties_cases() -> Vec<ConnectionStringProperties<'static>>
+    {
         let mut cases = Vec::new();
         // "missing endpoint"
         let case = ConnectionStringProperties {

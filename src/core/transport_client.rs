@@ -5,8 +5,7 @@ use azure_core::Url;
 use crate::{
     authorization::service_bus_token_credential::ServiceBusTokenCredential,
     primitives::{
-        service_bus_retry_options::RetryOptions,
-        service_bus_transport_type::TransportType,
+        service_bus_retry_options::RetryOptions, service_bus_transport_type::TransportType,
     },
     receiver::service_bus_receive_mode::ReceiveMode,
     sealed::Sealed,

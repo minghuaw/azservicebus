@@ -6,7 +6,8 @@ use std::time::Duration as StdDuration;
 
 use fe2o3_amqp_types::{
     messaging::{
-        annotations::OwnedKey, ApplicationProperties, Body, Data, Message as AmqpMessage, MessageAnnotations,
+        annotations::OwnedKey, ApplicationProperties, Body, Data, Message as AmqpMessage,
+        MessageAnnotations,
     },
     primitives::Binary,
 };

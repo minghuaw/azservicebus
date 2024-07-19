@@ -1,7 +1,4 @@
-use azservicebus::{
-    CreateMessageBatchOptions, Client, ClientOptions, Message,
-    Receiver, Sender,
-};
+use azservicebus::{Client, ClientOptions, CreateMessageBatchOptions, Message, Receiver, Sender};
 
 async fn send_batch(mut sender: Sender) -> Result<(), anyhow::Error> {
     let mut batch = sender.create_message_batch(CreateMessageBatchOptions::default())?;
@@ -38,11 +35,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let connection_string = std::env::var("SERVICE_BUS_CONNECTION_STRING")?;
     let queue_name = std::env::var("SERVICE_BUS_QUEUE")?;
 
-    let mut client = Client::new_from_connection_string(
-        connection_string,
-        ClientOptions::default(),
-    )
-    .await?;
+    let mut client =
+        Client::new_from_connection_string(connection_string, ClientOptions::default()).await?;
 
     // Create a sender and then send a batch of messages
     let sender = client

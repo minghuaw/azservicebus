@@ -55,10 +55,7 @@ impl TransportMessageBatch for AmqpMessageBatch {
         self.messages.is_empty()
     }
 
-    fn try_add_message(
-        &mut self,
-        message: crate::Message,
-    ) -> Result<(), Self::TryAddError> {
+    fn try_add_message(&mut self, message: crate::Message) -> Result<(), Self::TryAddError> {
         let serializable_message = Serializable(&message.amqp_message);
 
         // Initialize the size by reserving space for the batch envelope taking into account the

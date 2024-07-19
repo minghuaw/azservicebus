@@ -9,11 +9,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let queue_name = std::env::var("SERVICE_BUS_SESSION_QUEUE")?;
     let session_id = "session1";
 
-    let mut client = Client::new_from_connection_string(
-        connection_string,
-        ClientOptions::default(),
-    )
-    .await?;
+    let mut client =
+        Client::new_from_connection_string(connection_string, ClientOptions::default()).await?;
 
     // Create a sender and send a session message
     let mut sender = client

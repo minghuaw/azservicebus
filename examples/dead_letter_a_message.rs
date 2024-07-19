@@ -1,6 +1,4 @@
-use azservicebus::{
-    Client, ClientOptions, ReceiverOptions, SubQueue,
-};
+use azservicebus::{Client, ClientOptions, ReceiverOptions, SubQueue};
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -9,11 +7,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let connection_string = std::env::var("SERVICE_BUS_CONNECTION_STRING")?;
     let queue_name = std::env::var("SERVICE_BUS_QUEUE")?;
 
-    let mut client = Client::new_from_connection_string(
-        connection_string,
-        ClientOptions::default(),
-    )
-    .await?;
+    let mut client =
+        Client::new_from_connection_string(connection_string, ClientOptions::default()).await?;
 
     let mut receiver = client
         .create_receiver_for_queue(&queue_name, Default::default())

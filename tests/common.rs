@@ -3,9 +3,8 @@
 use std::time::Duration as StdDuration;
 
 use azservicebus::{
-    Client, ClientOptions, Message, PeekedMessage,
-    ReceivedMessage, ReceiverOptions, RetryOptions, ServiceBusSender,
-    SenderOptions, SessionReceiverOptions,
+    Client, ClientOptions, Message, PeekedMessage, ReceivedMessage, ReceiverOptions, RetryOptions,
+    SenderOptions, ServiceBusSender, SessionReceiverOptions,
 };
 use time::OffsetDateTime;
 
@@ -33,8 +32,7 @@ pub async fn create_client_and_send_messages_separately_to_queue_or_topic(
     sender_options: SenderOptions,
     messages: impl Iterator<Item = impl Into<Message>>,
 ) -> Result<(), anyhow::Error> {
-    let mut client =
-        Client::new_from_connection_string(connection_string, client_options).await?;
+    let mut client = Client::new_from_connection_string(connection_string, client_options).await?;
     let mut sender = client
         .create_sender(queue_or_topic_name, sender_options)
         .await?;
@@ -66,8 +64,7 @@ pub async fn create_client_and_receive_messages_from_queue(
     max_messages: u32,
     max_wait_time: Option<StdDuration>,
 ) -> Result<Vec<ReceivedMessage>, anyhow::Error> {
-    let mut client =
-        Client::new_from_connection_string(connection_string, client_options).await?;
+    let mut client = Client::new_from_connection_string(connection_string, client_options).await?;
     let mut receiver = client
         .create_receiver_for_queue(queue_name, receiver_options)
         .await?;
@@ -95,8 +92,7 @@ pub async fn create_client_and_receive_sessionful_messages_from_queue(
     max_messages: u32,
     max_wait_time: Option<StdDuration>,
 ) -> Result<Vec<ReceivedMessage>, anyhow::Error> {
-    let mut client =
-        Client::new_from_connection_string(connection_string, client_options).await?;
+    let mut client = Client::new_from_connection_string(connection_string, client_options).await?;
     let mut receiver = match session_id {
         Some(session_id) => {
             client
@@ -133,8 +129,7 @@ pub async fn create_client_and_receive_messages_from_subscription(
     max_messages: u32,
     max_wait_time: Option<StdDuration>,
 ) -> Result<Vec<ReceivedMessage>, anyhow::Error> {
-    let mut client =
-        Client::new_from_connection_string(connection_string, client_options).await?;
+    let mut client = Client::new_from_connection_string(connection_string, client_options).await?;
     let mut receiver = client
         .create_receiver_for_subscription(topic_name, subscription_name, receiver_options)
         .await?;
@@ -163,8 +158,7 @@ pub async fn create_client_and_receive_sessionful_messages_from_subscription(
     max_messages: u32,
     max_wait_time: Option<StdDuration>,
 ) -> Result<Vec<ReceivedMessage>, anyhow::Error> {
-    let mut client =
-        Client::new_from_connection_string(connection_string, client_options).await?;
+    let mut client = Client::new_from_connection_string(connection_string, client_options).await?;
     let mut receiver = client
         .accept_session_for_subscription(
             topic_name,
@@ -196,8 +190,7 @@ pub async fn create_client_and_abandon_messages_from_queue(
     max_messages: u32,
     max_wait_time: Option<StdDuration>,
 ) -> Result<Vec<ReceivedMessage>, anyhow::Error> {
-    let mut client =
-        Client::new_from_connection_string(connection_string, client_options).await?;
+    let mut client = Client::new_from_connection_string(connection_string, client_options).await?;
     let mut receiver = client
         .create_receiver_for_queue(queue_name, receiver_options)
         .await?;
@@ -224,8 +217,7 @@ pub async fn create_client_and_deadletter_messages_from_queue(
     max_messages: u32,
     max_wait_time: Option<StdDuration>,
 ) -> Result<Vec<ReceivedMessage>, anyhow::Error> {
-    let mut client =
-        Client::new_from_connection_string(connection_string, client_options).await?;
+    let mut client = Client::new_from_connection_string(connection_string, client_options).await?;
     let mut receiver = client
         .create_receiver_for_queue(queue_name, receiver_options)
         .await?;
@@ -254,8 +246,7 @@ pub async fn create_client_and_schedule_messages(
     messages: impl Iterator<Item = impl Into<Message>> + ExactSizeIterator + Send,
     enqueue_time: OffsetDateTime,
 ) -> Result<Vec<i64>, anyhow::Error> {
-    let mut client =
-        Client::new_from_connection_string(connection_string, client_options).await?;
+    let mut client = Client::new_from_connection_string(connection_string, client_options).await?;
     let mut sender = client.create_sender(queue_name, sender_options).await?;
 
     let sequence_numbers = sender.schedule_messages(messages, enqueue_time).await?;
@@ -273,8 +264,7 @@ pub async fn create_client_and_peek_messages(
     receiver_options: ReceiverOptions,
     max_messages: u32,
 ) -> Result<Vec<PeekedMessage>, anyhow::Error> {
-    let mut client =
-        Client::new_from_connection_string(connection_string, client_options).await?;
+    let mut client = Client::new_from_connection_string(connection_string, client_options).await?;
     let mut receiver = client
         .create_receiver_for_queue(queue_name, receiver_options)
         .await?;
@@ -295,8 +285,7 @@ pub async fn create_client_and_defer_messages(
     max_messages: u32,
     max_wait_time: Option<StdDuration>,
 ) -> Result<Vec<i64>, anyhow::Error> {
-    let mut client =
-        Client::new_from_connection_string(connection_string, client_options).await?;
+    let mut client = Client::new_from_connection_string(connection_string, client_options).await?;
     let mut receiver = client
         .create_receiver_for_queue(queue_name, receiver_options)
         .await?;
@@ -322,8 +311,7 @@ pub async fn create_client_and_receive_deferred_messages(
     receiver_options: ReceiverOptions,
     sequence_numbers: Vec<i64>,
 ) -> Result<Vec<ReceivedMessage>, anyhow::Error> {
-    let mut client =
-        Client::new_from_connection_string(connection_string, client_options).await?;
+    let mut client = Client::new_from_connection_string(connection_string, client_options).await?;
     let mut receiver = client
         .create_receiver_for_queue(queue_name, receiver_options)
         .await?;

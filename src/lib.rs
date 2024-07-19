@@ -234,12 +234,10 @@ pub mod prelude {
     pub use crate::primitives::{
         service_bus_connection_string_properties::ConnectionStringProperties,
         service_bus_message::Message, service_bus_message_state::MessageState,
-        service_bus_peeked_message::PeekedMessage,
-        service_bus_received_message::ReceivedMessage,
-        service_bus_retry_mode::RetryMode,
-        service_bus_retry_options::RetryOptions,
-        service_bus_retry_policy::RetryPolicy,
-        service_bus_transport_type::TransportType, sub_queue::SubQueue,
+        service_bus_peeked_message::PeekedMessage, service_bus_received_message::ReceivedMessage,
+        service_bus_retry_mode::RetryMode, service_bus_retry_options::RetryOptions,
+        service_bus_retry_policy::RetryPolicy, service_bus_transport_type::TransportType,
+        sub_queue::SubQueue,
     };
     pub use crate::receiver::service_bus_receive_mode::ReceiveMode;
     pub use crate::sender::{

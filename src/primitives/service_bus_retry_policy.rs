@@ -83,15 +83,9 @@ pub trait ServiceBusRetryPolicyState {
 ///
 /// This trait currently is simple a marker trait that acts as the trait bound for the retry policy
 /// generic parameter on the Client.
-pub trait ServiceBusRetryPolicyExt:
-    RetryPolicy + From<RetryOptions> + Send + Sync
-{
-}
+pub trait ServiceBusRetryPolicyExt: RetryPolicy + From<RetryOptions> + Send + Sync {}
 
-impl<T> ServiceBusRetryPolicyExt for T where
-    T: RetryPolicy + From<RetryOptions> + Send + Sync
-{
-}
+impl<T> ServiceBusRetryPolicyExt for T where T: RetryPolicy + From<RetryOptions> + Send + Sync {}
 
 /// Runs the operation with the retry policy.
 ///
