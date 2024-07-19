@@ -28,7 +28,7 @@ pub(crate) trait TransportSessionReceiver: TransportReceiver {
     fn session_id(&self) -> Option<&str>;
 
     /// Get locked until time for the session
-    fn session_locked_until(&self) -> Option<OffsetDateTime>;
+    fn session_locked_until(&self) -> OffsetDateTime;
 
     /// Set locked until time for the session
     fn set_session_locked_until(&mut self, session_locked_until: OffsetDateTime);

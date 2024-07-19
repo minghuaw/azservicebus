@@ -8,14 +8,11 @@ use std::time::Duration as StdDuration;
 use time::OffsetDateTime;
 
 use crate::{
-    core::{RecoverableTransport, TransportReceiver, TransportSessionReceiver},
-    primitives::{
+    constants::DEFAULT_OFFSET_DATE_TIME, core::{RecoverableTransport, TransportReceiver, TransportSessionReceiver}, primitives::{
         service_bus_peeked_message::ServiceBusPeekedMessage,
         service_bus_received_message::ServiceBusReceivedMessage,
         service_bus_retry_policy::run_operation,
-    },
-    sealed::Sealed,
-    ServiceBusReceiveMode,
+    }, sealed::Sealed, ServiceBusReceiveMode
 };
 
 use super::{
@@ -266,8 +263,9 @@ impl TransportSessionReceiver for AmqpSessionReceiver {
             })
     }
 
-    fn session_locked_until(&self) -> Option<OffsetDateTime> {
+    fn session_locked_until(&self) -> OffsetDateTime {
         self.inner.receiver.properties(get_session_locked_until)
+            .unwrap_or(DEFAULT_OFFSET_DATE_TIME)
     }
 
     fn set_session_locked_until(&mut self, session_locked_until: OffsetDateTime) {
