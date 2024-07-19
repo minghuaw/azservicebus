@@ -110,10 +110,6 @@ where
         self.is_connection_scope_disposed
     }
 
-    fn service_endpoint(&self) -> &Url {
-        &self.service_endpoint
-    }
-
     async fn create_sender(
         &mut self,
         entity_path: String,
@@ -224,6 +220,7 @@ where
             cbs_command_sender,
             connection_scope: self.connection_scope.clone(),
         };
+
         Ok(AmqpSessionReceiver { inner })
     }
 
