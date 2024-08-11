@@ -23,6 +23,8 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let peeked = receiver.peek_message(None).await?;
     if let Some(peeked) = peeked {
+        let state = peeked.state();
+        println!("Peeked message state: {:?}", state);
         let message_body = std::str::from_utf8(peeked.body()?)?;
         println!("Peeked message: {:?}", message_body);
     }

@@ -16,7 +16,7 @@
 //!
 //! # Content
 //!
-//! - [Homepage](https://github.com/minghuaw/azure-sdk-for-rust/blob/separate_servicebus_crate/sdk/messaging_servicebus)
+//! - [Homepage](https://github.com/minghuaw/azservicebus)
 //! - [Examples](#examples)
 //!   - [Send messages to queue](#send-messages-to-queue)
 //!   - [Receive messages from queue](#receive-messages-from-queue)
@@ -24,13 +24,13 @@
 //! - [TLS Support](#tls-support)
 //! - [Feature flags](#feature-flags)
 //! - [Change
-//!   log](https://github.com/minghuaw/azure-sdk-for-rust/blob/separate_servicebus_crate/sdk/messaging_servicebus/CHANGELOG.md)
-//!
+//!   log](https://github.com/minghuaw/azservicebus/blob/main/CHANGELOG.md)
+//!     
 //! # Examples
 //!
 //! Below are two examples of sending and receiving messages from a queue. More examples can be
 //! found in the
-//! [examples](https://github.com/minghuaw/azure-sdk-for-rust/tree/separate_servicebus_crate/sdk/messaging_servicebus/examples)
+//! [examples](https://github.com/minghuaw/azservicebus/tree/main/examples)
 //!
 //! ## Send messages to queue
 //!

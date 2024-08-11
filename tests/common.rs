@@ -280,6 +280,11 @@ pub async fn create_client_and_peek_messages(
         .await?;
 
     let messages = receiver.peek_messages(max_messages, None).await?;
+    
+    // Check all messages are active
+    messages.iter().for_each(|m| {
+        assert_eq!(m.state(), azservicebus::ServiceBusMessageState::Active);
+    });
 
     receiver.dispose().await?;
     client.dispose().await?;
