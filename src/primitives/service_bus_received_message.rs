@@ -467,10 +467,7 @@ impl ServiceBusReceivedMessage {
             .message_annotations
             .as_ref()
             .and_then(|m| m.get(&MESSAGE_STATE_NAME as &dyn AnnotationKey))
-            .map(|value| match value {
-                Value::Long(val) => ServiceBusMessageState::from(*val),
-                _ => unreachable!("Expecting a Long"),
-            })
+            .and_then(|value| value.try_into().ok())
             .unwrap_or_default()
     }
 
