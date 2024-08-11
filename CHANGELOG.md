@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 0.20.2
+
+1. Fixed a bug where the message state cannot be converted from types other than i64
+2. Updated readme
+
 ## 0.20.1
 
 1. Fixed the bug that peek message response with a status code of 204 is not handled correctly.
