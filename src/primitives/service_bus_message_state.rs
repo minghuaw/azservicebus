@@ -7,7 +7,7 @@ use serde_amqp::Value;
 use crate::ServiceBusReceivedMessage;
 
 /// Represents the message state of the [`ServiceBusReceivedMessage`]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ServiceBusMessageState {
     /// Specifies an active message state.
     Active = 0,
