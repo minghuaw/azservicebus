@@ -1,6 +1,6 @@
 [package]
 name = "azservicebus"
-version = "0.20.2"
+version = "0.20.3"
 description = "An unofficial AMQP 1.0 rust client for Azure Service Bus"
 readme = "README.md"
 authors = ["Minghua Wu"]
