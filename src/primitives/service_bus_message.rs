@@ -398,7 +398,14 @@ impl ServiceBusMessage {
 
     /// Gets the application properties bag, which can be used for custom message metadata.
     pub fn application_properties(&self) -> Option<&ApplicationProperties> {
+        // TODO: return &Option<ApplicationProperties> instead
         self.amqp_message.application_properties.as_ref()
+    }
+
+    /// Gets a mutable reference to the application properties bag, which can be used for custom
+    /// message metadata.
+    pub fn application_properties_mut(&mut self) -> &mut Option<ApplicationProperties> {
+        &mut self.amqp_message.application_properties
     }
 }
 

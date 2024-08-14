@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.20.3
+
+1. Added `ServiceBusMessage::application_properties_mut()`
+
 ## 0.20.2
 
 1. Fixed a bug where the message state cannot be converted from types other than i64
