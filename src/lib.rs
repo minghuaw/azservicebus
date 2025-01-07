@@ -1,3 +1,5 @@
+#![allow(clippy::large_enum_variant, clippy::result_large_err)] // TODO: refactor to avoid large enum variant
+
 //! An unofficial and experimental AMQP 1.0 client for Azure Service Bus.
 //!
 //! This crate follows a similar structure to the dotnet sdk

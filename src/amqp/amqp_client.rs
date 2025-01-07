@@ -54,6 +54,33 @@ pub struct AmqpClient<RP> {
     is_connection_scope_disposed: bool,
 }
 
+impl<RP> AmqpClient<RP> {
+    async fn create_transport_client_inner(
+        service_endpoint: Url,
+        connection_endpoint: Url,
+        credential: ServiceBusTokenCredential,
+        transport_type: ServiceBusTransportType,
+        retry_timeout: Duration,
+    ) -> Result<Self, AmqpClientError> {
+        // Create AmqpConnectionScope
+        let fut = AmqpConnectionScope::new(
+            &service_endpoint,
+            connection_endpoint,
+            credential,
+            transport_type,
+        );
+        let connection_scope = crate::util::time::timeout(retry_timeout, fut).await??;
+    
+        Ok(Self {
+            service_endpoint: Arc::new(service_endpoint),
+            connection_scope: Arc::new(Mutex::new(connection_scope)),
+            transport_type,
+            retry_policy: PhantomData,
+            is_connection_scope_disposed: false,
+        })
+    }
+}
+
 impl<RP> Sealed for AmqpClient<RP> {}
 
 impl<RP> TransportClient for AmqpClient<RP>
@@ -83,22 +110,36 @@ where
 
         let connection_endpoint = format_connection_endpoint(host, transport_type, custom_endpoint, &service_endpoint)?;
 
-        // Create AmqpConnectionScope
-        let fut = AmqpConnectionScope::new(
-            &service_endpoint,
+        Self::create_transport_client_inner(
+            service_endpoint,
             connection_endpoint,
             credential,
             transport_type,
-        );
-        let connection_scope = crate::util::time::timeout(retry_timeout, fut).await??;
+            retry_timeout,
+        ).await
+    }
 
-        Ok(Self {
-            service_endpoint: Arc::new(service_endpoint),
-            connection_scope: Arc::new(Mutex::new(connection_scope)),
-            transport_type,
-            retry_policy: PhantomData,
-            is_connection_scope_disposed: false,
-        })
+    cfg_unsecured! {
+        async fn create_unsecured_transport_client(
+            host: &str,
+            credential: ServiceBusTokenCredential,
+            transport_type: ServiceBusTransportType,
+            custom_endpoint: Option<Url>,
+            retry_timeout: Duration,
+        ) -> Result<Self, Self::CreateClientError> {
+            // Scheme of service endpoint must always be either "amqp" or "amqps"
+            let service_endpoint = format_service_endpoint(host)?;
+
+            let connection_endpoint = format_unsecured_connection_endpoint(host, transport_type, custom_endpoint, &service_endpoint)?;
+
+            Self::create_transport_client_inner(
+                service_endpoint,
+                connection_endpoint,
+                credential,
+                transport_type,
+                retry_timeout,
+            ).await
+        }
     }
 
     fn transport_type(&self) -> ServiceBusTransportType {
@@ -265,6 +306,42 @@ fn format_service_endpoint(host: &str) -> Result<Url, url::ParseError> {
     Url::parse(&addr)
 }
 
+macro_rules! format_connection_endpoint_impl {
+    ($host:ident, $transport_type:ident, $custom_endpoint:ident, $service_endpoint:ident, $url_scheme_fn:ident) => {
+        match $custom_endpoint.as_ref().and_then(|url| url.host_str()) {
+            Some(custom_host) => match $transport_type {
+                #[cfg(not(target_arch = "wasm32"))]
+                ServiceBusTransportType::AmqpTcp => {
+                    let addr = format!("{}://{}", $transport_type.$url_scheme_fn(), custom_host);
+                    Url::parse(&addr)
+                }
+                ServiceBusTransportType::AmqpWebSocket => {
+                    let addr = format!(
+                        "{}://{}{}",
+                        $transport_type.$url_scheme_fn(),
+                        custom_host,
+                        AmqpConnectionScope::WEB_SOCKETS_PATH_SUFFIX
+                    );
+                    Url::parse(&addr)
+                }
+            },
+            None => match $transport_type {
+                #[cfg(not(target_arch = "wasm32"))]
+                ServiceBusTransportType::AmqpTcp => Ok($service_endpoint.clone()),
+                ServiceBusTransportType::AmqpWebSocket => {
+                    let addr = format!(
+                        "{}://{}{}",
+                        $transport_type.$url_scheme_fn(),
+                        $host,
+                        AmqpConnectionScope::WEB_SOCKETS_PATH_SUFFIX
+                    );
+                    Url::parse(&addr)
+                }
+            },
+        }
+    };
+}
+
 #[cfg_attr(target_arch = "wasm32", allow(unused_variables))]
 fn format_connection_endpoint(
     host: &str,
@@ -272,36 +349,17 @@ fn format_connection_endpoint(
     custom_endpoint: Option<Url>,
     service_endpoint: &Url,
 ) -> Result<Url, url::ParseError> {
-    match custom_endpoint.as_ref().and_then(|url| url.host_str()) {
-        Some(custom_host) => match transport_type {
-            #[cfg(not(target_arch = "wasm32"))]
-            ServiceBusTransportType::AmqpTcp => {
-                let addr = format!("{}://{}", transport_type.url_scheme(), custom_host);
-                Url::parse(&addr)
-            }
-            ServiceBusTransportType::AmqpWebSocket => {
-                let addr = format!(
-                    "{}://{}{}",
-                    transport_type.url_scheme(),
-                    custom_host,
-                    AmqpConnectionScope::WEB_SOCKETS_PATH_SUFFIX
-                );
-                Url::parse(&addr)
-            }
-        },
-        None => match transport_type {
-            #[cfg(not(target_arch = "wasm32"))]
-            ServiceBusTransportType::AmqpTcp => Ok(service_endpoint.clone()),
-            ServiceBusTransportType::AmqpWebSocket => {
-                let addr = format!(
-                    "{}://{}{}",
-                    transport_type.url_scheme(),
-                    host,
-                    AmqpConnectionScope::WEB_SOCKETS_PATH_SUFFIX
-                );
-                Url::parse(&addr)
-            }
-        },
+    format_connection_endpoint_impl!(host, transport_type, custom_endpoint, service_endpoint, url_scheme)
+}
+
+cfg_unsecured! {
+    fn format_unsecured_connection_endpoint(
+        host: &str,
+        transport_type: ServiceBusTransportType,
+        custom_endpoint: Option<Url>,
+        service_endpoint: &Url,
+    ) -> Result<Url, url::ParseError> {
+        format_connection_endpoint_impl!(host, transport_type, custom_endpoint, service_endpoint, unsecured_url_scheme)
     }
 }
 
