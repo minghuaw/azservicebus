@@ -201,16 +201,8 @@ where
     }
 }
 
-impl<C> ServiceBusConnection<C>
-where
-    C: TransportClient,
-    Error: From<C::CreateClientError>,
-{
-    pub(crate) async fn new(
-        connection_string: Cow<'_, str>,
-        options: ServiceBusClientOptions,
-    ) -> Result<Self, Error> {
-        let connection_string_properties =
+fn prepare_fqn_and_credential(connection_string: &str, options: &ServiceBusClientOptions) -> Result<(String, ServiceBusTokenCredential), Error> {
+    let connection_string_properties =
             ServiceBusConnectionStringProperties::parse(connection_string.as_ref())?;
         validate_connection_string_properties(&connection_string_properties, "connection_string")?;
 
@@ -253,28 +245,25 @@ where
         let token_credential: ServiceBusTokenCredential =
             ServiceBusTokenCredential::SharedAccessCredential(shared_access_credential);
 
-        let host = fully_qualified_namespace.unwrap_or("");
-        let inner_client = C::create_transport_client(
-            host,
-            token_credential,
-            options.transport_type,
-            options.custom_endpoint_address,
-            options.retry_options.try_timeout,
-        )
-        .await?;
-
-        Ok(Self {
-            fully_qualified_namespace: host.to_string(),
-            retry_options: options.retry_options,
-            inner_client,
-        })
-    }
+    let fqn = fully_qualified_namespace.unwrap_or("").to_string();
+    Ok((fqn, token_credential))
 }
 
 impl<C> ServiceBusConnection<C>
 where
-    C: TransportClient + Send,
+    C: TransportClient,
+    Error: From<C::CreateClientError>,
 {
+    pub(crate) async fn new(
+        connection_string: Cow<'_, str>,
+        options: ServiceBusClientOptions,
+    ) -> Result<Self, Error> {
+        let (fully_qualified_namespace, token_credential) = prepare_fqn_and_credential(connection_string.as_ref(), &options)?;
+
+        Self::new_from_credential(fully_qualified_namespace, token_credential, options).await
+            .map_err(Into::into)
+    }
+
     pub(crate) async fn new_from_credential(
         fully_qualified_namespace: String,
         credential: impl Into<ServiceBusTokenCredential>,
@@ -298,6 +287,16 @@ where
     }
 
     cfg_unsecured! {
+        pub(crate) async fn new_unsecured(
+            connection_string: Cow<'_, str>,
+            options: ServiceBusClientOptions,
+        ) -> Result<Self, Error> {
+            let (fully_qualified_namespace, token_credential) = prepare_fqn_and_credential(connection_string.as_ref(), &options)?;
+
+            Self::new_unsecured_from_credential(fully_qualified_namespace, token_credential, options).await
+                .map_err(Into::into)
+        }
+
         pub(crate) async fn new_unsecured_from_credential(
             fully_qualified_namespace: String,
             credential: impl Into<ServiceBusTokenCredential>,

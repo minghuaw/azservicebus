@@ -18,7 +18,7 @@ use crate::{
     diagnostics,
     entity_name_formatter::{self, format_entity_path},
     primitives::{
-        service_bus_connection::{build_connection_resource, build_unsecured_connection_resource, ServiceBusConnection},
+        service_bus_connection::{build_connection_resource, ServiceBusConnection},
         service_bus_retry_options::ServiceBusRetryOptions,
         service_bus_retry_policy::ServiceBusRetryPolicyExt,
         service_bus_transport_type::ServiceBusTransportType,
@@ -246,7 +246,7 @@ cfg_unsecured! {
         ) -> Result<ServiceBusClient<RP>, azure_core::Error> {
             let connection_string = connection_string.into();
             let identifier = options.identifier.clone();
-            let connection = ServiceBusConnection::new(connection_string, options).await?;
+            let connection = ServiceBusConnection::new_unsecured(connection_string, options).await?;
             let identifier = identifier.unwrap_or_else(|| {
                 diagnostics::utilities::generate_identifier(connection.fully_qualified_namespace())
             });
@@ -265,7 +265,7 @@ cfg_unsecured! {
             options: ServiceBusClientOptions,
         ) -> Result<ServiceBusClient<RP>, azure_core::Error> {
             let fully_qualified_namespace = fully_qualified_namespace.into();
-            let signuture_resource = build_unsecured_connection_resource(
+            let signuture_resource = crate::primitives::service_bus_connection::build_unsecured_connection_resource(
                 &options.transport_type,
                 Some(&fully_qualified_namespace),
                 None,
