@@ -203,7 +203,7 @@ where
 
 fn prepare_fqn_and_credential(connection_string: &str, options: &ServiceBusClientOptions) -> Result<(String, ServiceBusTokenCredential), Error> {
     let connection_string_properties =
-            ServiceBusConnectionStringProperties::parse(connection_string.as_ref())?;
+            ServiceBusConnectionStringProperties::parse(connection_string)?;
         validate_connection_string_properties(&connection_string_properties, "connection_string")?;
 
         let fully_qualified_namespace = connection_string_properties
