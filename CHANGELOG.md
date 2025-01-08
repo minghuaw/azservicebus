@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 0.20.4
+
+1. Added support for unsecured connection. This is useful for testing with Azure Service Bus
+   emulator.
+
 ## 0.20.3
 
 1. Added `ServiceBusMessage::application_properties_mut()`
