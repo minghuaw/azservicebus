@@ -28,7 +28,7 @@ impl ServiceBusTransportType {
         }
     }
 
-    cfg_unsecured!{
+    cfg_unsecured! {
         pub(crate) const UNSECURED_AMQP_SCHEME: &'static str = "amqp";
         pub(crate) const UNSECURED_WEBSOCKET_SCHEME: &'static str = "ws";
 
