@@ -128,7 +128,7 @@ where
             retry_timeout: Duration,
         ) -> Result<Self, Self::CreateClientError> {
             // Scheme of service endpoint must always be either "amqp" or "amqps"
-            let service_endpoint = format_service_endpoint(host)?;
+            let service_endpoint = format_unsecured_service_endpoint(host)?;
 
             let connection_endpoint = format_unsecured_connection_endpoint(host, transport_type, custom_endpoint, &service_endpoint)?;
 
@@ -304,6 +304,13 @@ where
 fn format_service_endpoint(host: &str) -> Result<Url, url::ParseError> {
     let addr = format!("{}://{}", ServiceBusTransportType::AMQP_SCHEME, host);
     Url::parse(&addr)
+}
+
+cfg_unsecured! {
+    fn format_unsecured_service_endpoint(host: &str) -> Result<Url, url::ParseError> {
+        let addr = format!("{}://{}", ServiceBusTransportType::UNSECURED_AMQP_SCHEME, host);
+        Url::parse(&addr)
+    }
 }
 
 macro_rules! format_connection_endpoint_impl {
