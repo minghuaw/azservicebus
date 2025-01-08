@@ -32,3 +32,13 @@ macro_rules! cfg_either_rustls_or_native_tls {
         )*
     }
 }
+
+macro_rules! cfg_unsecured {
+    ($($item:item)*) => {
+        $(
+            #[cfg(feature = "unsecured")]
+            #[cfg_attr(docsrs, doc(cfg(feature = "unsecured")))]
+            $item
+        )*
+    }
+}

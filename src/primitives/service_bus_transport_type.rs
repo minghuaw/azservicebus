@@ -27,4 +27,18 @@ impl ServiceBusTransportType {
             ServiceBusTransportType::AmqpWebSocket => Self::WEBSOCKET_SCHEME,
         }
     }
+
+    cfg_unsecured!{
+        pub(crate) const UNSECURED_AMQP_SCHEME: &'static str = "amqp";
+        pub(crate) const UNSECURED_WEBSOCKET_SCHEME: &'static str = "ws";
+
+        /// Returns the URI scheme for the transport type without the secure layer.
+        pub fn unsecured_url_scheme(&self) -> &str {
+            match self {
+                #[cfg(not(target_arch = "wasm32"))]
+                ServiceBusTransportType::AmqpTcp => Self::UNSECURED_AMQP_SCHEME,
+                ServiceBusTransportType::AmqpWebSocket => Self::UNSECURED_WEBSOCKET_SCHEME,
+            }
+        }
+    }
 }

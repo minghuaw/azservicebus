@@ -60,6 +60,16 @@ pub(crate) trait TransportClient: Sized + Sealed {
         retry_timeout: StdDuration,
     ) -> Result<Self, Self::CreateClientError>;
 
+    cfg_unsecured! {
+        async fn create_unsecured_transport_client(
+            host: &str,
+            credential: ServiceBusTokenCredential,
+            transport_type: ServiceBusTransportType,
+            custom_endpoint: Option<Url>,
+            retry_timeout: StdDuration,
+        ) -> Result<Self, Self::CreateClientError>;
+    }
+
     /// Get the transport type
     fn transport_type(&self) -> ServiceBusTransportType;
 

@@ -216,6 +216,117 @@ where
     }
 }
 
+cfg_unsecured! {
+    impl<RP> WithCustomRetryPolicy<RP> {
+        /// Use an unsecured connection for the client.
+        pub fn unsecured() -> Unsecured<RP> {
+            Unsecured {
+                retry_policy: PhantomData,
+            }
+        }
+    }
+
+    /// Type state for [`ServiceBusClient`] indicating that the client will be created over an
+    /// unsecured connection.
+    #[derive(Debug)]
+    pub struct Unsecured<RP> {
+        retry_policy: PhantomData<RP>,
+    }
+
+    impl<RP> Unsecured<RP>
+    where
+        RP: ServiceBusRetryPolicyExt + Send + Sync + 'static,
+    {
+        /// Similar to [`WithCustomRetryPolicy::new_from_connection_string`], but creates a
+        /// [`ServiceBusClient`] over an unsecured connection.
+        pub async fn new_from_connection_string<'a>(
+            self,
+            connection_string: impl Into<Cow<'a, str>>,
+            options: ServiceBusClientOptions,
+        ) -> Result<ServiceBusClient<RP>, azure_core::Error> {
+            let connection_string = connection_string.into();
+            let identifier = options.identifier.clone();
+            let connection = ServiceBusConnection::new_unsecured(connection_string, options).await?;
+            let identifier = identifier.unwrap_or_else(|| {
+                diagnostics::utilities::generate_identifier(connection.fully_qualified_namespace())
+            });
+            Ok(ServiceBusClient {
+                identifier,
+                connection,
+            })
+        }
+
+        /// Similar to [`WithCustomRetryPolicy::new_from_named_key_credential`], but creates a
+        /// [`ServiceBusClient`] over an unsecured connection.
+        pub async fn new_from_named_key_credential(
+            self,
+            fully_qualified_namespace: impl Into<String>,
+            credential: AzureNamedKeyCredential,
+            options: ServiceBusClientOptions,
+        ) -> Result<ServiceBusClient<RP>, azure_core::Error> {
+            let fully_qualified_namespace = fully_qualified_namespace.into();
+            let signuture_resource = crate::primitives::service_bus_connection::build_unsecured_connection_resource(
+                &options.transport_type,
+                Some(&fully_qualified_namespace),
+                None,
+            )?;
+            let shared_access_credential =
+                SharedAccessCredential::try_from_named_key_credential(credential, signuture_resource)?;
+            self.new_from_credential(fully_qualified_namespace, shared_access_credential, options).await
+        }
+
+        /// Similar to [`WithCustomRetryPolicy::new_from_sas_credential`], but creates a
+        /// [`ServiceBusClient`] over an unsecured connection.
+        pub async fn new_from_sas_credential(
+            self,
+            fully_qualified_namespace: impl Into<String>,
+            credential: AzureSasCredential,
+            options: ServiceBusClientOptions,
+        ) -> Result<ServiceBusClient<RP>, azure_core::Error> {
+            let shared_access_credential = SharedAccessCredential::try_from_sas_credential(credential)?;
+            self.new_from_credential(fully_qualified_namespace, shared_access_credential, options).await
+        }
+
+        /// Similar to [`WithCustomRetryPolicy::new_from_token_credential`], but creates a
+        /// [`ServiceBusClient`] over an unsecured connection.
+        pub async fn new_from_token_credential(
+            self,
+            fully_qualified_namespace: impl Into<String>,
+            credential: impl TokenCredential + 'static,
+            options: ServiceBusClientOptions,
+        ) -> Result<ServiceBusClient<RP>, azure_core::Error> {
+            let credential = ServiceBusTokenCredential::new(credential);
+            self.new_from_credential(fully_qualified_namespace, credential, options)
+                .await
+        }
+
+        /// Similar to [`WithCustomRetryPolicy::new_from_credential`], but creates a
+        /// [`ServiceBusClient`] over an unsecured connection.
+        pub async fn new_from_credential(
+            self,
+            fully_qualified_namespace: impl Into<String>,
+            credential: impl Into<ServiceBusTokenCredential>,
+            options: ServiceBusClientOptions,
+        ) -> Result<ServiceBusClient<RP>, azure_core::Error> {
+            let fully_qualified_namespace = fully_qualified_namespace.into();
+            let identifier = options.identifier.clone().unwrap_or_else(|| {
+                diagnostics::utilities::generate_identifier(&fully_qualified_namespace)
+            });
+            let credential = credential.into();
+            let connection = ServiceBusConnection::new_unsecured_from_credential(
+                fully_qualified_namespace,
+                credential,
+                options,
+            )
+            .await?;
+            Ok(ServiceBusClient {
+                identifier,
+                connection,
+            })
+        }
+    }
+}
+
 /// The [`ServiceBusClient`] is the top-level client through which all Service Bus entities can be
 /// interacted with. Any lower level types retrieved from here, such as [`ServiceBusSender`] and
 /// [`ServiceBusReceiver`] will share the same AMQP connection. Disposing the [`ServiceBusClient`]
@@ -261,6 +372,15 @@ impl ServiceBusClient<BasicRetryPolicy> {
     pub fn with_custom_retry_policy<RP>() -> WithCustomRetryPolicy<RP> {
         WithCustomRetryPolicy {
             retry_policy: PhantomData,
+        }
+    }
+
+    cfg_unsecured! {
+        /// Use an unsecured connection for the client.
+        pub fn unsecured() -> Unsecured<BasicRetryPolicy> {
+            Unsecured {
+                retry_policy: PhantomData,
+            }
         }
     }
 

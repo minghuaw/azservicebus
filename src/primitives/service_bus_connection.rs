@@ -35,37 +35,53 @@ macro_rules! ok_if_not_none_or_empty {
     };
 }
 
+macro_rules! build_connection_resource_impl {
+    ($transport_type:ident, $fully_qualified_namespace:ident, $entity_name:ident, $url_scheme_fn:ident) => {
+        match $fully_qualified_namespace {
+            Some(fqn) => {
+                let mut builder = Url::parse(&format!("{}://{}", $transport_type.$url_scheme_fn(), fqn))?;
+                builder.set_path($entity_name.unwrap_or_default());
+                builder
+                    .set_port(None)
+                    .map_err(|_| ArgumentError("Unable to set port to None".to_string()))?;
+                builder.set_fragment(None);
+                builder
+                    .set_password(None)
+                    .map_err(|_| ArgumentError("Unable to set password to None".to_string()))?;
+                builder.set_username("").map_err(|_| {
+                    ArgumentError("Unable to set username to empty string".to_string())
+                })?;
+
+                // Removes the trailing slash if and only if there is one and it is not the first
+                // character
+                builder
+                    .path_segments_mut()
+                    .map_err(|_| url::ParseError::RelativeUrlWithCannotBeABaseBase)?
+                    .pop_if_empty();
+
+                Ok(builder.to_string().to_lowercase())
+            }
+            None => Ok(String::new()),
+        }
+    };
+}
+
 /// Builds the audience of the connection for use in the signature.
 pub(crate) fn build_connection_resource(
     transport_type: &ServiceBusTransportType,
     fully_qualified_namespace: Option<&str>,
     entity_name: Option<&str>,
 ) -> Result<String, Error> {
-    match fully_qualified_namespace {
-        Some(fqn) => {
-            let mut builder = Url::parse(&format!("{}://{}", transport_type.url_scheme(), fqn))?;
-            builder.set_path(entity_name.unwrap_or_default());
-            builder
-                .set_port(None)
-                .map_err(|_| ArgumentError("Unable to set port to None".to_string()))?;
-            builder.set_fragment(None);
-            builder
-                .set_password(None)
-                .map_err(|_| ArgumentError("Unable to set password to None".to_string()))?;
-            builder.set_username("").map_err(|_| {
-                ArgumentError("Unable to set username to empty string".to_string())
-            })?;
+    build_connection_resource_impl!(transport_type, fully_qualified_namespace, entity_name, url_scheme)
+}
 
-            // Removes the trailing slash if and only if there is one and it is not the first
-            // character
-            builder
-                .path_segments_mut()
-                .map_err(|_| url::ParseError::RelativeUrlWithCannotBeABaseBase)?
-                .pop_if_empty();
-
-            Ok(builder.to_string().to_lowercase())
-        }
-        None => Ok(String::new()),
+cfg_unsecured! {
+    pub(crate) fn build_unsecured_connection_resource(
+        transport_type: &ServiceBusTransportType,
+        fully_qualified_namespace: Option<&str>,
+        entity_name: Option<&str>,
+    ) -> Result<String, Error> {
+        build_connection_resource_impl!(transport_type, fully_qualified_namespace, entity_name, unsecured_url_scheme)
     }
 }
 
@@ -185,16 +201,8 @@ where
     }
 }
 
-impl<C> ServiceBusConnection<C>
-where
-    C: TransportClient,
-    Error: From<C::CreateClientError>,
-{
-    pub(crate) async fn new(
-        connection_string: Cow<'_, str>,
-        options: ServiceBusClientOptions,
-    ) -> Result<Self, Error> {
-        let connection_string_properties =
+fn prepare_fqn_and_credential(connection_string: &str, options: &ServiceBusClientOptions) -> Result<(String, ServiceBusTokenCredential), Error> {
+    let connection_string_properties =
             ServiceBusConnectionStringProperties::parse(connection_string.as_ref())?;
         validate_connection_string_properties(&connection_string_properties, "connection_string")?;
 
@@ -237,28 +245,25 @@ where
         let token_credential: ServiceBusTokenCredential =
             ServiceBusTokenCredential::SharedAccessCredential(shared_access_credential);
 
-        let host = fully_qualified_namespace.unwrap_or("");
-        let inner_client = C::create_transport_client(
-            host,
-            token_credential,
-            options.transport_type,
-            options.custom_endpoint_address,
-            options.retry_options.try_timeout,
-        )
-        .await?;
-
-        Ok(Self {
-            fully_qualified_namespace: host.to_string(),
-            retry_options: options.retry_options,
-            inner_client,
-        })
-    }
+    let fqn = fully_qualified_namespace.unwrap_or("").to_string();
+    Ok((fqn, token_credential))
 }
 
 impl<C> ServiceBusConnection<C>
 where
-    C: TransportClient + Send,
+    C: TransportClient,
+    Error: From<C::CreateClientError>,
 {
+    pub(crate) async fn new(
+        connection_string: Cow<'_, str>,
+        options: ServiceBusClientOptions,
+    ) -> Result<Self, Error> {
+        let (fully_qualified_namespace, token_credential) = prepare_fqn_and_credential(connection_string.as_ref(), &options)?;
+
+        Self::new_from_credential(fully_qualified_namespace, token_credential, options).await
+            .map_err(Into::into)
+    }
+
     pub(crate) async fn new_from_credential(
         fully_qualified_namespace: String,
         credential: impl Into<ServiceBusTokenCredential>,
@@ -279,6 +284,40 @@ where
             retry_options: options.retry_options,
             inner_client,
         })
+    }
+
+    cfg_unsecured! {
+        pub(crate) async fn new_unsecured(
+            connection_string: Cow<'_, str>,
+            options: ServiceBusClientOptions,
+        ) -> Result<Self, Error> {
+            let (fully_qualified_namespace, token_credential) = prepare_fqn_and_credential(connection_string.as_ref(), &options)?;
+
+            Self::new_unsecured_from_credential(fully_qualified_namespace, token_credential, options).await
+                .map_err(Into::into)
+        }
+
+        pub(crate) async fn new_unsecured_from_credential(
+            fully_qualified_namespace: String,
+            credential: impl Into<ServiceBusTokenCredential>,
+            options: ServiceBusClientOptions,
+        ) -> Result<ServiceBusConnection<C>, C::CreateClientError> {
+            let token_credential: ServiceBusTokenCredential = credential.into();
+            let inner_client = C::create_unsecured_transport_client(
+                &fully_qualified_namespace,
+                token_credential,
+                options.transport_type,
+                options.custom_endpoint_address,
+                options.retry_options.try_timeout,
+            )
+            .await?;
+    
+            Ok(ServiceBusConnection {
+                fully_qualified_namespace,
+                retry_options: options.retry_options,
+                inner_client,
+            })
+        }
     }
 
     pub async fn dispose(self) -> Result<(), C::DisposeError> {
