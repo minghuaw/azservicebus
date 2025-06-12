@@ -1,6 +1,6 @@
 //! The set of properties that comprise a Service Bus connection string.
 
-use azure_core::http::Url;
+use azure_core::Url;
 
 /// Error with parsing the connection string.
 #[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]

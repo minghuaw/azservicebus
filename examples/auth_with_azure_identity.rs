@@ -1,5 +1,5 @@
 use azservicebus::{ServiceBusClient, ServiceBusClientOptions, ServiceBusSenderOptions};
-use azure_identity::DefaultAzureCredential;
+use azure_identity::{DefaultAzureCredential, TokenCredentialOptions};
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -9,8 +9,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let namespace = std::env::var("SERVICE_BUS_NAMESPACE")?;
     let queue_name = std::env::var("SERVICE_BUS_QUEUE")?;
 
-    let credential = DefaultAzureCredential::new()?;
-    let mut client = ServiceBusClient::new_from_token_credential(
+    let credential = DefaultAzureCredential::create(TokenCredentialOptions::default()).unwrap();
+    let mut client = ServiceBusClient::new_from_credential(
         namespace,
         credential,
         ServiceBusClientOptions::default(),

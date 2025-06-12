@@ -1,4 +1,4 @@
-use azure_core::credentials::AccessToken;
+use azure_core::auth::AccessToken;
 use fe2o3_amqp_cbs::{token::CbsToken, AsyncCbsTokenProvider};
 use fe2o3_amqp_types::primitives::Timestamp;
 use std::{future::Future, sync::Arc};
@@ -100,7 +100,7 @@ mod tests {
         use std::sync::Arc;
         use time::Duration as TimeSpan;
 
-        use azure_core::credentials::{Secret, AccessToken};
+        use azure_core::auth::{Secret, AccessToken};
         use time::{macros::datetime, OffsetDateTime};
 
         use crate::{
@@ -118,7 +118,7 @@ mod tests {
 
             mock_credential
                 .expect_get_token()
-                .returning(move |_scope, _options| {
+                .returning(move |_scope| {
                     Box::pin(async move {
                         Ok(AccessToken {
                             token: Secret::new(token_value),
@@ -127,7 +127,7 @@ mod tests {
                     })
                 });
 
-            let credential = ServiceBusTokenCredential::from(Arc::new(mock_credential));
+            let credential = ServiceBusTokenCredential::from(mock_credential);
             let mut provider = super::CbsTokenProvider::new(Arc::new(credential), TimeSpan::seconds(0));
 
             let token = provider
@@ -152,7 +152,7 @@ mod tests {
             mock_credential
                 .expect_get_token()
                 .times(1)
-                .returning(move |_scope, _options| {
+                .returning(move |_scope| {
                     Box::pin(async move {
                         Ok(AccessToken {
                             token: Secret::new(token_value),
@@ -161,7 +161,7 @@ mod tests {
                     })
                 });
 
-            let credential = ServiceBusTokenCredential::from(Arc::new(mock_credential));
+            let credential = ServiceBusTokenCredential::from(mock_credential);
             let mut provider = super::CbsTokenProvider::new(Arc::new(credential), TimeSpan::seconds(0));
 
             let (first_token_value, first_token_type, first_token_expires_at) = {
@@ -201,7 +201,7 @@ mod tests {
             mock_credential
                 .expect_get_token()
                 .times(2)
-                .returning(move |_scope, _options| {
+                .returning(move |_scope| {
                     Box::pin(async move {
                         Ok(AccessToken {
                             token: Secret::new(token_value),
@@ -210,7 +210,7 @@ mod tests {
                     })
                 });
 
-            let credential = ServiceBusTokenCredential::from(Arc::new(mock_credential));
+            let credential = ServiceBusTokenCredential::from(mock_credential);
             let mut provider = super::CbsTokenProvider::new(Arc::new(credential), buffer);
 
             let (first_token_value, first_token_type, first_token_expires_at) = {

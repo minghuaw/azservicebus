@@ -4,7 +4,7 @@ use std::{
 };
 
 
-use azure_core::http::Url;
+use azure_core::Url;
 use fe2o3_amqp::{
     connection::ConnectionHandle, link::receiver::CreditMode, sasl_profile::SaslProfile,
     session::SessionHandle, Connection, Session,
