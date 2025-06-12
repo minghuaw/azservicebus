@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use azure_core::Url;
+use azure_core::http::Url;
 
 use crate::{
     authorization::{

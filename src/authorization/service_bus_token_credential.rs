@@ -1,4 +1,6 @@
-use azure_core::auth::{AccessToken, TokenCredential};
+use std::sync::Arc;
+
+use azure_core::credentials::{AccessToken, TokenCredential};
 
 use crate::constants::DEFAULT_SCOPE;
 
@@ -12,10 +14,10 @@ use super::shared_access_credential::SharedAccessCredential;
 /// # Example
 ///
 /// ```rust,no_run
-/// use azure_identity::{DefaultAzureCredential, TokenCredentialOptions};
+/// use azure_identity::DefaultAzureCredential;
 /// use azservicebus::authorization::ServiceBusTokenCredential;
 ///
-/// let default_credential = DefaultAzureCredential::create(TokenCredentialOptions::default()).unwrap();
+/// let default_credential = DefaultAzureCredential::new().unwrap();
 /// let credential = ServiceBusTokenCredential::from(default_credential);
 /// ```
 pub enum ServiceBusTokenCredential {
@@ -27,7 +29,7 @@ pub enum ServiceBusTokenCredential {
     /// Other credential types.
     ///
     /// TODO: Is the use of trait object here justified?
-    Other(Box<dyn TokenCredential>),
+    Other(Arc<dyn TokenCredential>),
 }
 
 impl std::fmt::Debug for ServiceBusTokenCredential {
@@ -45,20 +47,20 @@ impl From<SharedAccessCredential> for ServiceBusTokenCredential {
     }
 }
 
-impl<TC> From<TC> for ServiceBusTokenCredential
+impl<TC> From<Arc<TC>> for ServiceBusTokenCredential
 where
     TC: TokenCredential + 'static,
 {
-    fn from(source: TC) -> Self {
-        Self::Other(Box::new(source) as Box<dyn TokenCredential>)
+    fn from(source: Arc<TC>) -> Self {
+        Self::Other(source)
     }
 }
 
 impl ServiceBusTokenCredential {
     /// Creates a new `ServiceBusTokenCredential` from the given credential. This is an alias for
     /// `From::from`.
-    pub fn new(source: impl Into<Self>) -> Self {
-        source.into()
+    pub fn new(source: Arc<dyn TokenCredential>) -> Self {
+        Self::Other(source)
     }
 
     /// Indicates whether the credential is based on an Service Bus
@@ -75,7 +77,7 @@ impl ServiceBusTokenCredential {
             ServiceBusTokenCredential::SharedAccessCredential(credential) => {
                 credential.get_token(scopes).await
             }
-            ServiceBusTokenCredential::Other(credential) => credential.get_token(scopes).await,
+            ServiceBusTokenCredential::Other(credential) => credential.get_token(scopes, None).await,
         }
     }
 
@@ -87,8 +89,9 @@ impl ServiceBusTokenCredential {
 cfg_not_wasm32! {
     #[cfg(test)]
     mod tests {
-        use azure_core::auth::Secret;
+        use azure_core::credentials::Secret;
         use time::macros::datetime;
+        use std::sync::Arc;
 
         use crate::authorization::{
             shared_access_credential::SharedAccessCredential,
@@ -102,19 +105,19 @@ cfg_not_wasm32! {
             let token_value = "token";
             let mut mock_credentials = MockTokenCredential::new();
             let scope = "the scope value";
-            let token_response = azure_core::auth::AccessToken {
+            let token_response = azure_core::credentials::AccessToken {
                 token: Secret::new(token_value),
                 expires_on: datetime!(2015-10-27 00:00:00).assume_utc(),
             };
             mock_credentials
                 .expect_get_token()
                 .times(1)
-                .returning(move |_resource| {
+                .returning(move |_resource, _options| {
                     let token_response_clone = token_response.clone();
                     Box::pin( async { Ok(token_response_clone) } )
                 });
 
-            let credential = ServiceBusTokenCredential::from(mock_credentials);
+            let credential = ServiceBusTokenCredential::from(Arc::new(mock_credentials));
             let token_result = credential.get_token(&[scope]).await;
             assert_eq!(token_result.unwrap().token.secret(), token_value);
         }
@@ -129,7 +132,7 @@ cfg_not_wasm32! {
             )
             .unwrap();
             let sas_credential = SharedAccessCredential::from(signature);
-            let credential = ServiceBusTokenCredential::new(sas_credential);
+            let credential = ServiceBusTokenCredential::from(sas_credential);
             assert!(credential.is_shared_access_credential());
         }
     }
