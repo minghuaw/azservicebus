@@ -1,7 +1,7 @@
 use std::{marker::PhantomData, sync::Arc, time::Duration};
 
 
-use azure_core::Url;
+use azure_core::http::Url;
 use tokio::sync::Mutex;
 
 use crate::{
