@@ -1,8 +1,8 @@
 //! Client and client configuration options for Azure Service Bus.
 
-use std::{borrow::Cow, marker::PhantomData};
+use std::{borrow::Cow, marker::PhantomData, sync::Arc};
 
-use azure_core::{auth::TokenCredential, Url};
+use azure_core::{credentials::TokenCredential, http::Url};
 
 use crate::{
     amqp::{
@@ -169,7 +169,7 @@ where
     pub async fn new_from_token_credential(
         self,
         fully_qualified_namespace: impl Into<String>,
-        credential: impl TokenCredential + 'static,
+        credential: Arc<dyn TokenCredential>,
         options: ServiceBusClientOptions,
     ) -> Result<ServiceBusClient<RP>, azure_core::Error> {
         let credential = ServiceBusTokenCredential::new(credential);
@@ -184,7 +184,7 @@ where
     pub async fn create_client_with_token_credential(
         self,
         fully_qualified_namespace: impl Into<String>,
-        credential: impl TokenCredential + 'static,
+        credential: Arc<dyn TokenCredential>,
         options: ServiceBusClientOptions,
     ) -> Result<ServiceBusClient<RP>, azure_core::Error> {
         self.new_from_token_credential(fully_qualified_namespace, credential, options).await
@@ -204,7 +204,7 @@ where
         });
         let credential = credential.into();
         let connection = ServiceBusConnection::new_from_credential(
-            fully_qualified_namespace,
+            fully_qualified_namespace.into(),
             credential,
             options,
         )
@@ -292,7 +292,7 @@ cfg_unsecured! {
         pub async fn new_from_token_credential(
             self,
             fully_qualified_namespace: impl Into<String>,
-            credential: impl TokenCredential + 'static,
+            credential: Arc<dyn TokenCredential>,
             options: ServiceBusClientOptions,
         ) -> Result<ServiceBusClient<RP>, azure_core::Error> {
             let credential = ServiceBusTokenCredential::new(credential);
@@ -480,7 +480,7 @@ impl ServiceBusClient<BasicRetryPolicy> {
     /// Creates a new instance of the [`ServiceBusClient`] class using a token credential.
     pub async fn new_from_token_credential(
         fully_qualified_namespace: impl Into<String>,
-        credential: impl TokenCredential + 'static,
+        credential: Arc<dyn TokenCredential>,
         options: ServiceBusClientOptions,
     ) -> Result<Self, azure_core::Error> {
         Self::with_custom_retry_policy()
@@ -495,7 +495,7 @@ impl ServiceBusClient<BasicRetryPolicy> {
     )]
     pub async fn new_with_token_credential(
         fully_qualified_namespace: impl Into<String>,
-        credential: impl TokenCredential + 'static,
+        credential: Arc<dyn TokenCredential>,
         options: ServiceBusClientOptions,
     ) -> Result<Self, azure_core::Error> {
         Self::new_from_token_credential(fully_qualified_namespace, credential, options).await
@@ -579,7 +579,7 @@ where
         let retry_options = self.connection.retry_options().clone();
         let inner = self
             .connection
-            .create_transport_sender(entity_path, identifier, retry_options)
+            .create_transport_sender(entity_path.into(), identifier, retry_options)
             .await?;
 
         Ok(ServiceBusSender { inner })

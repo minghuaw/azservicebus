@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## 0.25.0
+
+1. Updated dependencies
+   1. `azure_core` to "0.25"
+   2. `azure_identity` to "0.25"
+
+2. Updated ServiceBusClient to accept Arc-wrapped credentials to match azure_identity's new default credential type.
+
+## 0.21.0
+
+1. Updated dependencies
+   1. `azure_core` to "0.21"
+   2. `azure_identity` to "0.21"
+   3. `fe2o3-amqp-types` to "0.14"
+   4. `fe2o3-amqp` to "0.14"
+   5. `fe2o3-amqp-cbs` to "0.14"
+   6. `fe2o3-amqp-management` to "0.14"
+   7. `fe2o3-amqp-ws` to "0.14"
+   8. `serde_amqp` to "0.14"
+
+
 ## 0.20.4
 
 1. Added support for unsecured connection. This is useful for testing with Azure Service Bus

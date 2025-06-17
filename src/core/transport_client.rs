@@ -1,6 +1,6 @@
 use std::time::Duration as StdDuration;
 
-use azure_core::Url;
+use azure_core::http::Url;
 
 use crate::{
     authorization::service_bus_token_credential::ServiceBusTokenCredential,
