@@ -186,28 +186,23 @@ impl<'a> ServiceBusConnectionStringProperties<'a> {
         let token_value_pairs = connection_string.split(Self::TOKEN_VALUE_PAIR_DELIMITER);
 
         for token_value_pair in token_value_pairs {
-            // Do not remove the separator if it is part of the value.
-            let mut split = token_value_pair.split_inclusive(Self::TOKEN_VALUE_SEPARATOR);
-            let token = match split
-                .next()
-                .and_then(|s| s.split(Self::TOKEN_VALUE_SEPARATOR).next())
-                .and_then(|s| match s.trim() {
-                    "" => None,
-                    s => Some(s),
-                }) {
-                Some(token) => token,
-                None => continue,
-            };
+            if token_value_pair.is_empty() {
+                continue;
+            }
 
-            let value = split
-                .next()
-                .and_then(|s| match s.trim() {
-                    "" => None,
-                    s => Some(s),
-                })
-                // If there was no value for a key, then consider the connection string to
-                // be malformed.
+            let (token, value) = token_value_pair
+                .split_once(Self::TOKEN_VALUE_SEPARATOR)
                 .ok_or(FormatError::InvalidConnectionString)?;
+
+            let token = token.trim();
+            if token.is_empty() {
+                continue;
+            }
+
+            let value = value.trim();
+            if value.is_empty() {
+                continue;
+            }
 
             // Compare the token against the known connection string properties and capture the
             // pair if they are a known attribute.
@@ -715,6 +710,17 @@ mod tests {
             let result = ServiceBusConnectionStringProperties::parse(test_case);
             assert_eq!(result, Err(FormatError::InvalidConnectionString));
         }
+    }
+
+    #[test]
+    fn parse_sas_only_connection_string() {
+        let sas_value = "SharedAccessSignature sr=sb%3A%2F%2Fmysb.servicebus.windows.net%2Fns%2Fsubscriptions%2Fabcd1234&sig=VRJrWUFA6CzMV2mebBb4zfUe6KjWOhJiHi1l5qbKLwg%3D&se=1751967277&skn=key-name";
+        let sas_connection_string =
+            format!("Endpoint=sb://mysb.servicebus.windows.net/;SharedAccessSignature={sas_value}");
+
+        let parsed = ServiceBusConnectionStringProperties::parse(&sas_connection_string).unwrap();
+
+        assert_eq!(parsed.shared_access_signature(), Some(sas_value));
     }
 
     #[test]
