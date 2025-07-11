@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.25.1
+
+1. Fixed a bug with SAS connection string parsing [#40]
+
 ## 0.25.0
 
 1. Updated dependencies
