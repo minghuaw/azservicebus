@@ -29,15 +29,16 @@ cfg_not_wasm32! {
 
             impl azure_core::credentials::TokenCredential for TokenCredential {
                 // Required methods
-                fn get_token<'life0, 'life1, 'life2, 'async_trait>(
+                fn get_token<'life0, 'life1, 'life2, 'life3, 'async_trait>(
                     &'life0 self,
                     scopes: &'life1 [&'life2 str],
-                    options: Option<azure_core::credentials::TokenRequestOptions>
+                    options: Option<azure_core::credentials::TokenRequestOptions<'life3>>
                 ) -> Pin<Box<dyn Future<Output = Result<AccessToken>> + Send + 'async_trait>>
                 where Self: 'async_trait,
                         'life0: 'async_trait,
                         'life1: 'async_trait,
-                        'life2: 'async_trait;
+                        'life2: 'async_trait,
+                        'life3: 'async_trait;
             }
         }
     }
