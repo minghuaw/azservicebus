@@ -267,7 +267,7 @@ impl SharedAccessSignature {
     /// Parses a shared access signature into its component parts.
     pub(crate) fn parse_signature(
         shared_access_signature: &str,
-    ) -> Result<SignatureParts, SasSignatureError> {
+    ) -> Result<SignatureParts<'_>, SasSignatureError> {
         let mut key_name = None;
         let mut resource = None;
         let mut expiration_time = DEFAULT_OFFSET_DATE_TIME;
