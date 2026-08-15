@@ -3,13 +3,16 @@
 ## 0.26.0
 
 1. Updated dependencies
-   1. `azure_core` to "1.0"
+   1. `azure_core` to "1.1", with default features disabled (the crate uses no HTTP client, so this
+      keeps `reqwest` out of the dependency tree and leaves the TLS backend to the consumer)
    2. `azure_identity` to "1.0"
 
-2. `azure_core 1.0` added a lifetime parameter to `TokenRequestOptions`, which is reflected in the
+2. Bumped MSRV to 1.88, as required by `azure_core` 1.1.
+
+3. `azure_core 1.0` added a lifetime parameter to `TokenRequestOptions`, which is reflected in the
    mocked `TokenCredential` implementation.
 
-3. `azure_identity 1.0` removed `DefaultAzureCredential`. The `auth_with_azure_identity` example and
+4. `azure_identity 1.0` removed `DefaultAzureCredential`. The `auth_with_azure_identity` example and
    the `ServiceBusTokenCredential` docs now use `DeveloperToolsCredential` /
    `ManagedIdentityCredential` instead.
 

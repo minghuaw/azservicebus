@@ -11,7 +11,7 @@ documentation = "https://docs.rs/azservicebus"
 categories = ["api-bindings"]
 keywords = ["sdk", "azure", "servicebus", "amqp", "cloud"]
 edition = "2021"
-rust-version = "1.75.0"
+rust-version = "1.88"
 
 # docs.rs configurations
 # To test the docs locally, run
@@ -39,8 +39,7 @@ urlencoding = "2"
 uuid = { version = "1", features = ["v4"] }
 indexmap = { version = "2", features = ["std"] }
 
-# Azure dependencies
-azure_core = "1.0.0"
+azure_core = { version = "1.1.0", default-features = false } # Azure dependencies
 
 # AMQP dependencies
 fe2o3-amqp-types = "0.14"
