@@ -9,16 +9,16 @@ use super::shared_access_credential::SharedAccessCredential;
 /// Token-based credential for Service Bus.
 ///
 /// This supports `SharedAccessCredential` and other credential types that
-/// implement `TokenCredential` (eg. `azure_identity::DefaultAzureCredential`).
+/// implement `TokenCredential` (eg. `azure_identity::DeveloperToolsCredential`).
 ///
 /// # Example
 ///
 /// ```rust,no_run
-/// use azure_identity::DefaultAzureCredential;
+/// use azure_identity::DeveloperToolsCredential;
 /// use azservicebus::authorization::ServiceBusTokenCredential;
 ///
-/// let default_credential = DefaultAzureCredential::new().unwrap();
-/// let credential = ServiceBusTokenCredential::from(default_credential);
+/// let developer_credential = DeveloperToolsCredential::new(None).unwrap();
+/// let credential = ServiceBusTokenCredential::from(developer_credential);
 /// ```
 pub enum ServiceBusTokenCredential {
     /// Shared Access Signature credential.
@@ -77,7 +77,9 @@ impl ServiceBusTokenCredential {
             ServiceBusTokenCredential::SharedAccessCredential(credential) => {
                 credential.get_token(scopes).await
             }
-            ServiceBusTokenCredential::Other(credential) => credential.get_token(scopes, None).await,
+            ServiceBusTokenCredential::Other(credential) => {
+                credential.get_token(scopes, None).await
+            }
         }
     }
 
