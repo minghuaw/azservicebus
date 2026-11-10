@@ -1,9 +1,9 @@
 use fe2o3_amqp::{
-    link::{delivery::DeliveryFut, SendError},
     Sendable,
+    link::{SendError, delivery::DeliveryFut},
 };
 use fe2o3_amqp_types::messaging::{
-    message::__private::Serializable, Batch, Data, Message, Outcome,
+    Batch, Data, Message, Outcome, message::__private::Serializable,
 };
 use serde_amqp::to_vec;
 
@@ -27,6 +27,9 @@ pub(crate) enum BatchEnvelopeState {
 
     /// The envelope has been settled by the receiver.
     Settled,
+
+    /// The transfer was sent but its delivery outcome could not be recovered.
+    DeliveryOutcomeUnknown(String),
 }
 
 impl std::fmt::Debug for BatchEnvelopeState {
@@ -35,6 +38,10 @@ impl std::fmt::Debug for BatchEnvelopeState {
             BatchEnvelopeState::NotSent => write!(f, "NotSent"),
             BatchEnvelopeState::Sent(_) => write!(f, "Sent"),
             BatchEnvelopeState::Settled => write!(f, "Settled"),
+            BatchEnvelopeState::DeliveryOutcomeUnknown(reason) => f
+                .debug_tuple("DeliveryOutcomeUnknown")
+                .field(reason)
+                .finish(),
         }
     }
 }
