@@ -11,6 +11,11 @@ pub(crate) static SERVER_BUSY_BASE_SLEEP_TIME: StdDuration = StdDuration::from_s
 
 /// Trait for operation errors that can be retried.
 pub trait ServiceBusRetryPolicyError: std::error::Error + Send + Sync + 'static {
+    /// Returns whether retrying the operation can safely make progress.
+    fn should_retry(&self) -> bool {
+        true
+    }
+
     /// Returns true if the error is recoverable by recovering the connection scope.
     fn should_try_recover(&self) -> bool;
 
@@ -165,7 +170,11 @@ macro_rules! run_operation {
                     //    recoverable and the retry policy is exhausted.
 
                     _failed_attempt_count += 1;
-                    let _retry_delay = $policy.calculate_retry_delay(&error, _failed_attempt_count);
+                    let _retry_delay = if crate::primitives::service_bus_retry_policy::ServiceBusRetryPolicyError::should_retry(&error) {
+                        $policy.calculate_retry_delay(&error, _failed_attempt_count)
+                    } else {
+                        None
+                    };
                     _is_scope_disposed |= crate::primitives::service_bus_retry_policy::ServiceBusRetryPolicyError::is_scope_disposed(&error);
                     // check if the error is recoverable
                     _should_try_recover = crate::primitives::service_bus_retry_policy::ServiceBusRetryPolicyError::should_try_recover(&error);

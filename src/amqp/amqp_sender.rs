@@ -1,11 +1,10 @@
-
 use fe2o3_amqp::link::DetachError;
 use fe2o3_amqp_management::error::Error as ManagementError;
 use fe2o3_amqp_types::messaging::Outcome;
 use fe2o3_amqp_types::primitives::Array;
 use std::sync::Arc;
 use std::time::Duration as StdDuration;
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::{Mutex, mpsc};
 use url::Url;
 
 use crate::authorization::service_bus_claim;
@@ -14,16 +13,16 @@ use crate::primitives::error::RetryError;
 use crate::sealed::Sealed;
 use crate::sender::MINIMUM_BATCH_SIZE_LIMIT;
 use crate::{
-    core::TransportSender,
-    primitives::service_bus_retry_policy::{run_operation, ServiceBusRetryPolicy},
     CreateMessageBatchOptions, ServiceBusMessage,
+    core::TransportSender,
+    primitives::service_bus_retry_policy::{ServiceBusRetryPolicy, run_operation},
 };
 
 use super::amqp_cbs_link;
 use super::amqp_connection_scope::AmqpConnectionScope;
 use super::amqp_management_link::AmqpManagementLink;
 use super::amqp_message_batch::AmqpMessageBatch;
-use super::amqp_message_converter::{build_amqp_batch_from_messages, BatchEnvelopeState};
+use super::amqp_message_converter::{BatchEnvelopeState, build_amqp_batch_from_messages};
 use super::amqp_request_message::cancel_scheduled_message::CancelScheduledMessageRequest;
 use super::amqp_request_message::schedule_message::ScheduleMessageRequest;
 use super::error::{
@@ -31,7 +30,7 @@ use super::error::{
 };
 use super::{
     amqp_message_converter::{
-        batch_service_bus_messages_as_amqp_message, BatchEnvelope, SendableEnvelope,
+        BatchEnvelope, SendableEnvelope, batch_service_bus_messages_as_amqp_message,
     },
     error::NotAcceptedError,
 };
@@ -57,9 +56,7 @@ impl RecoverableTransport for AmqpSender {
 
     async fn recover(&mut self) -> Result<(), Self::RecoverError> {
         let mut connection_scope = self.connection_scope.lock().await;
-        connection_scope
-            .recover()
-            .await?;
+        connection_scope.recover().await?;
 
         let endpoint = format!("{}/{}", self.service_endpoint, self.entity_path);
         let resource = endpoint.clone();
@@ -87,6 +84,15 @@ impl RecoverableTransport for AmqpSender {
 }
 
 impl AmqpSender {
+    async fn await_batch_outcome(batch: &mut BatchEnvelope) -> Result<Outcome, AmqpSendError> {
+        let result = match &mut batch.state {
+            BatchEnvelopeState::Sent(fut) => fut.await,
+            _ => unreachable!("only a sent batch has a delivery outcome"),
+        };
+
+        result.map_err(Into::into)
+    }
+
     async fn send_batch_envelope(
         &mut self,
         batch: &mut BatchEnvelope,
@@ -103,8 +109,22 @@ impl AmqpSender {
                         batch.state = BatchEnvelopeState::Sent(fut);
                     }
                 },
-                BatchEnvelopeState::Sent(fut) => break fut.await?,
+                BatchEnvelopeState::Sent(_) => {
+                    match Self::await_batch_outcome(batch).await {
+                        Ok(outcome) => break outcome,
+                        Err(error) => {
+                            // The broker may have accepted this transfer; do not resend it.
+                            let reason = error.to_string();
+                            batch.state =
+                                BatchEnvelopeState::DeliveryOutcomeUnknown(reason.clone());
+                            return Err(AmqpSendError::DeliveryOutcomeUnknown(reason));
+                        }
+                    }
+                }
                 BatchEnvelopeState::Settled => return Ok(()),
+                BatchEnvelopeState::DeliveryOutcomeUnknown(reason) => {
+                    return Err(AmqpSendError::DeliveryOutcomeUnknown(reason.clone()));
+                }
             }
         };
 

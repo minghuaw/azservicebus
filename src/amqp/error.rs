@@ -563,6 +563,10 @@ pub(crate) enum AmqpSendError {
     #[error(transparent)]
     NotAccepted(#[from] NotAcceptedError),
 
+    /// The transfer may have been accepted, but its settlement outcome was lost.
+    #[error("delivery outcome unknown: {0}")]
+    DeliveryOutcomeUnknown(String),
+
     /// The operation timed out
     #[error(transparent)]
     Elapsed(#[from] Elapsed),
@@ -615,6 +619,10 @@ impl ServiceBusRetryPolicyError for SendError {
 }
 
 impl ServiceBusRetryPolicyError for AmqpSendError {
+    fn should_retry(&self) -> bool {
+        !matches!(self, Self::NotAccepted(_) | Self::DeliveryOutcomeUnknown(_))
+    }
+
     fn should_try_recover(&self) -> bool {
         match self {
             Self::Send(err) => err.should_try_recover(),
